@@ -223,7 +223,12 @@ ops_manager () {
   UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
   curl --insecure "https://manager.$SUBDOMAIN/api/v0/settings/pivotal_network_settings" -X PUT \
       -H "Authorization: Bearer $UAA_ACCESS_TOKEN" \
-      -H "Content-Type: application/json" -d @api-calls/pivotal_network_settings.json
+      -H "Content-Type: application/json" <<PIVNET_SETTINGS
+  {
+    "pivotal_network_settings":
+      { "api_token": "$PIVNET_TOKEN" }
+  }
+PIVNET_SETTINGS
 }
 
 service_broker () {
