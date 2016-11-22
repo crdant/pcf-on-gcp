@@ -47,6 +47,8 @@ blobstore () {
   gsutil rm -r gs://droplets-pcf-${DOMAIN_TOKEN}
   gsutil rm -r gs://packages-pcf-${DOMAIN_TOKEN}
   gsutil rm -r gs://resources-pcf-${DOMAIN_TOKEN}
+  # the one for BOSH, target-pools
+  gsutil mb -l us-east1 gs://bosh-blobstore-pcf-${DOMAIN_TOKEN}
 }
 
 ops_manager () {
@@ -87,7 +89,7 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" backend-services remove-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE}" --quiet
   gcloud compute --project "${PROJECT}" backend-services delete "pcf-http-router-${DOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" http-health-checks delete "pcf-http-router-health-check-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-router-${DOMAIN_TOKEN}" --global --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "pcf-http-router-${DOMAIN_TOKEN}" --global --quiet
 
   # SSH
   gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION} --quiet
@@ -95,7 +97,7 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" addresses delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION} --quiet
 
   # remove the instance group that they load balancers depend on
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances" --zone=${AVAILABILITY_ZONE} --quiet
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${DOMAIN_TOKEN}" --zone=${AVAILABILITY_ZONE} --quiet
 
 }
 
@@ -104,7 +106,7 @@ dns () {
   gcloud dns record-sets transaction start -z ${DNS_ZONE} --quiet
 
   # HTTP/S router
-  HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-router-${DOMAIN_TOKEN}" --region ${REGION}  | jq --raw-output ".address"`
+  HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-http-router-${DOMAIN_TOKEN}" --region ${REGION}  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "manager.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.apps.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.pcf.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
@@ -138,14 +140,14 @@ security () {
 
 network () {
   # remove the firewall rules I added based on my earlier experimentation
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-bosh" --quiet
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-cloud-controller" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-bosh-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-cloud-controller-${DOMAIN_TOKEN}" --quiet
 
   # remove necessary firewall rules
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-allow-internal-traffic" --quiet
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-opsmanager" --quiet
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-load-balancers" --quiet
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-tcp-load-balancers" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-allow-internal-traffic-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-opsmanager-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-load-balancers-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-tcp-load-balancers-${DOMAIN_TOKEN}" --quiet
 
   # remove the a network
   gcloud compute --project "${PROJECT}" networks subnets delete "pcf-us-east1-${DOMAIN_TOKEN}" --region ${REGION} --quiet
