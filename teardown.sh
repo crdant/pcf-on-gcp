@@ -5,15 +5,19 @@
 env () {
   ACCOUNT="cdantonio@pivotal.io"
   PROJECT="fe-cdantonio"
+  DOMAIN=crdant.io
+
   REGION="us-east1"
-  AVAILABILITY_ZONE="us-east1-b"
-  DOMAIN="crdant.io"
+  AVAILABILITY_ZONE="${REGION}-b"
   DOMAIN_TOKEN=`echo ${DOMAIN} | tr . -`
   SUBDOMAIN="gcp.${DOMAIN}"
   DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
+  DNS_TTL=300
   CIDR="10.0.0.0/20"
-  PCF_VERSION="1.8.10"
-  VERSION_TOKEN=`echo ${PCF_VERSION} | tr . -`
+  ALL_INTERNET="0.0.0.0/0"
+  OPS_MANAGER_VERSION="1.8.10"
+  OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
+  PCF_VERSION="1.8.16"
 }
 
 setup () {
@@ -47,24 +51,23 @@ blobstore () {
   gsutil rm -r gs://droplets-pcf-${DOMAIN_TOKEN}
   gsutil rm -r gs://packages-pcf-${DOMAIN_TOKEN}
   gsutil rm -r gs://resources-pcf-${DOMAIN_TOKEN}
-  # the one for BOSH, target-pools
-  gsutil mb -l us-east1 gs://bosh-blobstore-pcf-${DOMAIN_TOKEN}
+  # the one for BOSH
+  # gsutil rm -l ${REGION} gs://bosh-blobstore-pcf-${DOMAIN_TOKEN}
 }
 
 ops_manager () {
   # remove from DNS
-  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager" --region "${REGION}" | jq --raw-output ".address"`
+  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION}" | jq --raw-output ".address"`
   gcloud dns record-sets transaction start -z ${DNS_ZONE}
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "manager.${SUBDOMAIN}" --ttl ${DNS_TTL} --type A ${OPS_MANAGER_ADDRESS}
   gcloud dns record-sets transaction execute -z ${DNS_ZONE}
 
   # release public IP
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-ops-manager" --region "${REGION}" --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "pcf-ops-manager-${DOMAIN_TOKEN}" --region ${REGION} --quiet
 
   # drop Ops Manager
-  gcloud compute --project "${PROJECT}" instances delete "pcf-ops-manager" --zone ${AVAILABILITY_ZONE} --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-ops-manager" --region ${REGION} --quiet
-  gcloud compute --project "${PROJECT}" images delete "pcf-ops-manager-${VERSION_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" instances delete "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE} --quiet
+  gcloud compute --project "${PROJECT}" images delete "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}" --quiet
   rm ubuntu-key ubuntu-key.pub
 }
 
@@ -106,8 +109,7 @@ dns () {
   gcloud dns record-sets transaction start -z ${DNS_ZONE} --quiet
 
   # HTTP/S router
-  HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-http-router-${DOMAIN_TOKEN}" --region ${REGION}  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "manager.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
+  HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-http-router-${DOMAIN_TOKEN}" --global  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.apps.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.pcf.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
 
@@ -150,7 +152,7 @@ network () {
   gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-tcp-load-balancers-${DOMAIN_TOKEN}" --quiet
 
   # remove the a network
-  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-us-east1-${DOMAIN_TOKEN}" --region ${REGION} --quiet
+  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-${REGION}-${DOMAIN_TOKEN}" --region ${REGION} --quiet
   gcloud compute --project "${PROJECT}" networks delete "pcf-${DOMAIN_TOKEN}" --quiet
 }
 
