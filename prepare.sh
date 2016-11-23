@@ -64,7 +64,7 @@ security () {
 }
 
 ssl_certs () {
-  COMMON_NAME="*.${SUBDOMAIN},*.system.${SUBDOMAIN},*.apps.${SUBDOMAIN}"
+  COMMON_NAME="*.${SUBDOMAIN},*.system.${SUBDOMAIN},*.pcf.${SUBDOMAIN},*.apps.${SUBDOMAIN}"
   COUNTRY="US"
   STATE="MA"
   CITY="Cambridge"
@@ -126,6 +126,7 @@ dns () {
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-http-router-${DOMAIN_TOKEN}" --global  | jq --raw-output ".address"`
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.apps.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}"
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}"
 
   # ssh router
   SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ssh-${DOMAIN_TOKEN}" --region "${REGION}"  | jq --raw-output ".address"`
@@ -226,6 +227,9 @@ ops_manager () {
   gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE}" --metadata-from-file "ssh-keys=ubuntu-key.pub"
   mv ubuntu-key.pub.gcp ubuntu-key.pub
 
+  # noticed I was getting 502 errors on the setup calls below, so sleeping to see if that helps
+  sleep 60
+
   # now let's get ops manager going
   curl --insecure "https://manager.${SUBDOMAIN}/api/v0/setup" -X POST \
       -H "Content-Type: application/json" -d @api-calls/setup.json
@@ -235,13 +239,8 @@ ops_manager () {
   uaac token owner get opsman admin --secret='' --password="abscound-novena-shut-pierre"
   UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
   curl --insecure "https://manager.${SUBDOMAIN}/api/v0/settings/pivotal_network_settings" -X PUT \
-      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-      -H "Content-Type: application/json" <<PIVNET_SETTINGS
-{
-  "pivotal_network_settings":
-    { "api_token": "$PIVNET_TOKEN" }
-}
-PIVNET_SETTINGS
+      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
+      -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
 }
 
 
@@ -250,11 +249,36 @@ products () {
 }
 
 cloud_foundry () {
-  PCF_RELEASES_URL="https://network.pivotal.io/api/v2/products/elastic_runtime/releases"
+  PCF_RELEASES_URL="https://network.pivotal.io/api/v2/products/elastic-runtime/releases"
+  ERT_TILE_FILE="$TMPDIR/cf-${PCF_VERSION}.pivotal"
+
   FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $PCF_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$PCF_VERSION\" ) ._links .product_files .href"`
   DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] | select( .name == "PCF Elastic Runtime" ) ._links .download .href'`
   DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
-  echo "Cloud Foundry is available at $DOWNLOAD_URL"
+
+  echo "Downloading Cloud Foundry ERT from $DOWNLOAD_URL..."
+  curl -qsf -o $ERT_TILE_FILE $DOWNLOAD_URL
+
+  echo "Uploading Cloud Foundry ERT to Operations Manager..."
+  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -F "product[file]=@${ERT_TILE_FILE}"
+
+  echo "Staging Cloud Foundry ERT..."
+  PCF_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"cf\" )"`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -d "{\"name\": \"cf\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+
+  # provide the necessary DNS records for the internal MySQL database
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99"
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
+
+  # N.B. We should be able to use the ops manager client for Pivnet instead of downloading an re-uploading, but
+  #      it doesn't seem to do it's thing right now.
+  # curl --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/pivotal_network/downloads" \
+  #     -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Content-Type: application/json" \
+  #     -d "{ \"product_name\": \"elastic-runtime\", \"version\": \"${PCF_VERSION}\" }"
 }
 
 service_broker () {
