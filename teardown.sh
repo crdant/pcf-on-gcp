@@ -44,6 +44,16 @@ service_broker () {
   gcloud iam service-accounts delete service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 }
 
+cloud_foundry () {
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}"
+  gcloud dns record-sets transaction remove -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99"
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
+}
+
+products () {
+  cloud_foundry
+}
+
 blobstore () {
   # drop cloud storage buckets
   gsutil rm -r gs://blobstore-pcf-${DOMAIN_TOKEN}
@@ -112,6 +122,7 @@ dns () {
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-http-router-${DOMAIN_TOKEN}" --global  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.apps.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.pcf.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.system.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
 
   # ssh router
   SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION}  | jq --raw-output ".address"`
@@ -159,6 +170,7 @@ network () {
 env
 setup
 vms
+products
 blobstore
 ops_manager
 dns
