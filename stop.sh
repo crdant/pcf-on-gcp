@@ -5,15 +5,22 @@
 env () {
   ACCOUNT="cdantonio@pivotal.io"
   PROJECT="fe-cdantonio"
-  REGION="us-east1"
-  AVAILABILITY_ZONE="us-east1-b"
-  DOMAIN="crdant.io"
+  DOMAIN=crdant.io
+
+  REGION_1="us-east1"
+  AVAILABILITY_ZONE_1="${REGION_1}-b"
+  STORAGE_LOCATION="us"
   DOMAIN_TOKEN=`echo ${DOMAIN} | tr . -`
   SUBDOMAIN="gcp.${DOMAIN}"
   DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
+  DNS_TTL=300
   CIDR="10.0.0.0/20"
   ALL_INTERNET="0.0.0.0/0"
+  OPS_MANAGER_VERSION="1.8.10"
+  OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
+  PCF_VERSION="1.8.16"
 }
+
 
 setup () {
   # make sure our API components are up-to-date
@@ -22,8 +29,8 @@ setup () {
   # log in (parameterize later)
   gcloud auth login cdantonio@pivotal.io
   gcloud config set project ${PROJECT}
-  gcloud config set compute/zone ${AVAILABILITY_ZONE}
-  gcloud config set compute/region ${REGION}
+  gcloud config set compute/zone ${AVAILABILITY_ZONE_1}
+  gcloud config set compute/region ${REGION_1}
 }
 
 vms () {
@@ -36,7 +43,7 @@ vms () {
 
 ops_manager () {
   # pause Ops Manager
-  gcloud compute --project "${PROJECT}" instances stop "pcf-ops-manager-187" --zone "${AVAILABILITY_ZONE}" --quiet
+  gcloud compute --project "${PROJECT}" instances stop "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --quiet
 }
 
 env
