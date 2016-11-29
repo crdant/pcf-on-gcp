@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # prepare to install PCF on GCP
 
 env () {
@@ -5,8 +7,9 @@ env () {
   PROJECT="fe-cdantonio"
   DOMAIN=crdant.io
 
-  REGION="us-east1"
-  AVAILABILITY_ZONE="${REGION}-b"
+  REGION_1="us-east1"
+  AVAILABILITY_ZONE_1="${REGION_1}-b"
+  STORAGE_LOCATION="us"
   DOMAIN_TOKEN=`echo ${DOMAIN} | tr . -`
   SUBDOMAIN="gcp.${DOMAIN}"
   DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
@@ -16,6 +19,11 @@ env () {
   OPS_MANAGER_VERSION="1.8.10"
   OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
   PCF_VERSION="1.8.16"
+  MYSQL_VERSION="1.8.0-edge.15"
+  RABBIT_VERSION="1.7.6"
+  REDIS_VERSION="1.6.2"
+  GCP_VERSION="2.0.1 (BETA)"
+  SCS_VERSION="1.3.0"
 }
 
 setup () {
@@ -25,16 +33,16 @@ setup () {
   # log in (parameterize later)
   gcloud auth login ${ACCOUNT}
   gcloud config set project ${PROJECT}
-  gcloud config set compute/zone ${AVAILABILITY_ZONE}
-  gcloud config set compute/region ${REGION}
+  gcloud config set compute/zone ${AVAILABILITY_ZONE_1}
+  gcloud config set compute/REGION_1 ${REGION_1}
 }
 
 network () {
   # create a network (parameterize the network name and project later)
   gcloud compute --project "${PROJECT}" networks create "pcf-${DOMAIN_TOKEN}" --description "Network for crdant.io Cloud Foundry installation. Creating with a single subnet." --mode "custom"
 
-  # create a single subnet in us-east1 (parameterize region and names later)
-  gcloud compute --project "${PROJECT}" networks subnets create "pcf-${REGION}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --region "${REGION}" --range ${CIDR}
+  # create a single subnet in us-east1 (parameterize REGION_1 and names later)
+  gcloud compute --project "${PROJECT}" networks subnets create "pcf-${REGION_1}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}" --range ${CIDR}
 
   # create necessary firewall rules
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-allow-internal-traffic-${DOMAIN_TOKEN}" --allow "tcp:0-65535,udp:0-65535,icmp" --description "Enable traffic between all VMs managed by Ops Manager and BOSH" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR}
@@ -64,32 +72,33 @@ security () {
 }
 
 ssl_certs () {
-  COMMON_NAME="*.${SUBDOMAIN},*.system.${SUBDOMAIN},*.pcf.${SUBDOMAIN},*.apps.${SUBDOMAIN}"
+  COMMON_NAME="*.${SUBDOMAIN}"
   COUNTRY="US"
   STATE="MA"
   CITY="Cambridge"
   ORGANIZATION="crdant.io"
   ORG_UNIT="Cloud"
   EMAIL="cdantonio@pivotal.io"
+  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.system.${SUBDOMAIN},DNS:*.pcf.${SUBDOMAIN},DNS:*.apps.${SUBDOMAIN},DNS:*.login.system.${SUBDOMAIN},DNS:*.uaa.system.${SUBDOMAIN}"
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
-  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${TMPDIR}/${DOMAIN_TOKEN}.key" -out "${TMPDIR}/${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}"
+  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout ${TMPDIR}/${DOMAIN_TOKEN}.key -out ${TMPDIR}/${DOMAIN_TOKEN}.crt -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n"))
 }
 
 load_balancers () {
   # setup the load balancers
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE} --description "Includes all VM instances that are managed as part of the PCF install."
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --description "Includes all VM instances that are managed as part of the PCF install."
 
   # SSH
-  gcloud compute --project "${PROJECT}" addresses create "pcf-ssh-${DOMAIN_TOKEN}" --region "${REGION}"
-  gcloud compute --project "${PROJECT}" target-pools create "pcf-ssh-${DOMAIN_TOKEN}" --description "Target pool for load balancing SSH access to PCF instances" --region "${REGION}" --session-affinity "NONE"
-  gcloud compute --project "${PROJECT}" forwarding-rules create "pcf-ssh-${DOMAIN_TOKEN}" --description "Forwarding rule for load balancing SSH access to PCF instances\"" --region "${REGION}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION}/addresses/pcf-ssh-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "2222" --target-pool "pcf-ssh-${DOMAIN_TOKEN}"
+  gcloud compute --project "${PROJECT}" addresses create "pcf-ssh-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"
+  gcloud compute --project "${PROJECT}" target-pools create "pcf-ssh-${DOMAIN_TOKEN}" --description "Target pool for load balancing SSH access to PCF instances" --REGION_1 "${REGION_1}" --session-affinity "NONE"
+  gcloud compute --project "${PROJECT}" forwarding-rules create "pcf-ssh-${DOMAIN_TOKEN}" --description "Forwarding rule for load balancing SSH access to PCF instances\"" --REGION_1 "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-ssh-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "2222" --target-pool "pcf-ssh-${DOMAIN_TOKEN}"
 
   # HTTP(S)
   gcloud compute --project "${PROJECT}" addresses create "pcf-http-router-${DOMAIN_TOKEN}" --global
   gcloud compute --project "${PROJECT}" http-health-checks create "pcf-http-router-health-check-${DOMAIN_TOKEN}" --description "Health check for load balancing web access to PCF instances" --request-path "/health" --port="8080" --timeout "5s" --healthy-threshold "2" --unhealthy-threshold "2"
   gcloud compute --project "${PROJECT}" backend-services create "pcf-http-router-${DOMAIN_TOKEN}" --description "Backend services for load balancing web access to PCF instances" --session-affinity "NONE"  --http-health-checks "pcf-http-router-health-check-${DOMAIN_TOKEN}"
-  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE}" --description "Backend to map HTTP load balancing to the appropriate instances"
+  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --description "Backend to map HTTP load balancing to the appropriate instances"
   gcloud compute --project "${PROJECT}" url-maps create "pcf-http-router-${DOMAIN_TOKEN}" --default-service "pcf-http-router-${DOMAIN_TOKEN}" --description "URL Map for HTTP load balancer for access to PCF instances"
   gcloud compute --project "${PROJECT}" ssl-certificates create "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --certificate "${TMPDIR}/${DOMAIN_TOKEN}.crt"  --private-key "${TMPDIR}/${DOMAIN_TOKEN}.key"
   gcloud compute --project "${PROJECT}" target-http-proxies create "pcf-router-http-proxy-${DOMAIN_TOKEN}" --url-map  "pcf-http-router-${DOMAIN_TOKEN}" --description "Backend services for load balancing HTTP access to PCF instances"
@@ -98,14 +107,14 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" forwarding-rules create --global "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule2" --description "Forwarding rule for load balancing web (SSL) access to PCF instances." --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/global/addresses/pcf-http-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-https-proxy "pcf-router-https-proxy-${DOMAIN_TOKEN}"
 
   # Websockets (documentation says it reuses a bunch of stuff from the HTTP LB)
-  gcloud compute --project "${PROJECT}" addresses create "pcf-websockets-${DOMAIN_TOKEN}" --region "${REGION}"
-  gcloud compute --project "${PROJECT}" target-pools create "pcf-websockets-${DOMAIN_TOKEN}" --description "Target pool for load balancing web access to PCF instances" --region "${REGION}" --session-affinity "NONE"  --http-health-check "pcf-http-router-health-check-${DOMAIN_TOKEN}"
-  gcloud compute --project "${PROJECT}" forwarding-rules create "pcf-websockets-${DOMAIN_TOKEN}" --description "Forwarding rule for load balancing web access to PCF instances." --region "${REGION}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION}/addresses/pcf-websockets-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-pool "pcf-websockets-${DOMAIN_TOKEN}"
+  gcloud compute --project "${PROJECT}" addresses create "pcf-websockets-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"
+  gcloud compute --project "${PROJECT}" target-pools create "pcf-websockets-${DOMAIN_TOKEN}" --description "Target pool for load balancing web access to PCF instances" --REGION_1 "${REGION_1}" --session-affinity "NONE"  --http-health-check "pcf-http-router-health-check-${DOMAIN_TOKEN}"
+  gcloud compute --project "${PROJECT}" forwarding-rules create "pcf-websockets-${DOMAIN_TOKEN}" --description "Forwarding rule for load balancing web access to PCF instances." --REGION_1 "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-websockets-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-pool "pcf-websockets-${DOMAIN_TOKEN}"
 
   # TCP Routing
-  gcloud compute --project "${PROJECT}" addresses create "pcf-tcp-router-${DOMAIN_TOKEN}" --region "${REGION}"
-  gcloud compute --project "${PROJECT}" target-pools create "pcf-tcp-router-${DOMAIN_TOKEN}" --description "Target pool for load balancing web access to PCF instances" --region "${REGION}" --session-affinity "NONE"
-  gcloud compute --project "${PROJECT}" forwarding-rules create "pcf-tcp-router-${DOMAIN_TOKEN}" --description "Forwarding rule for load balancing web access to PCF instances." --region "${REGION}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION}/addresses/pcf-tcp-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "1024-65535" --target-pool "pcf-tcp-router-${DOMAIN_TOKEN}"
+  gcloud compute --project "${PROJECT}" addresses create "pcf-tcp-router-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"
+  gcloud compute --project "${PROJECT}" target-pools create "pcf-tcp-router-${DOMAIN_TOKEN}" --description "Target pool for load balancing web access to PCF instances" --REGION_1 "${REGION_1}" --session-affinity "NONE"
+  gcloud compute --project "${PROJECT}" forwarding-rules create "pcf-tcp-router-${DOMAIN_TOKEN}" --description "Forwarding rule for load balancing web access to PCF instances." --REGION_1 "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-tcp-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "1024-65535" --target-pool "pcf-tcp-router-${DOMAIN_TOKEN}"
   echo "Load balancers for Router: tcp:pcf-websockets-${DOMAIN_TOKEN},http:pcf-http-router-${DOMAIN_TOKEN}"
   echo "Load balancer for Deigo Brain: tcp:pcf-ssh-${DOMAIN_TOKEN}"
   echo "Load balancer for TCP Router: tcp:pcf-tcp-router-${DOMAIN_TOKEN}"
@@ -129,16 +138,16 @@ dns () {
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}"
 
   # ssh router
-  SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ssh-${DOMAIN_TOKEN}" --region "${REGION}"  | jq --raw-output ".address"`
+  SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ssh-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "ssh.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${SSH_ADDRESS}"
 
   # websockets router
-  WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-websockets-${DOMAIN_TOKEN}" --region "${REGION}"  | jq --raw-output ".address"`
+  WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-websockets-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "doppler.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}"
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "loggregator.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}"
 
   # tcp router
-  TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-tcp-router-${DOMAIN_TOKEN}" --region "${REGION}"  | jq --raw-output ".address"`
+  TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-tcp-router-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "tcp.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${TCP_ADDRESS}"
 
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
@@ -184,20 +193,14 @@ CHANGES
 }
 
 blobstore () {
-  # create storage bucket for BOSH blobstore -- uncertain permissions are needed
-  # gsutil mb -l ${REGION} gs://bosh-blobstore-pcf-${DOMAIN_TOKEN}
-  # gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://bosh-blobstore-pcf-${DOMAIN_TOKEN}
-
   # create storage buckets for ERT file storage -- uncertain permissions are needed
-  gsutil mb -l ${REGION} gs://blobstore-pcf-${DOMAIN_TOKEN}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://blobstore-pcf-${DOMAIN_TOKEN}
-  gsutil mb -l ${REGION} gs://buildpacks-pcf-${DOMAIN_TOKEN}
+  gsutil mb -l ${STORAGE_LOCATION} gs://buildpacks-pcf-${DOMAIN_TOKEN}
   gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://buildpacks-pcf-${DOMAIN_TOKEN}
-  gsutil mb -l ${REGION} gs://droplets-pcf-${DOMAIN_TOKEN}
+  gsutil mb -l ${STORAGE_LOCATION} gs://droplets-pcf-${DOMAIN_TOKEN}
   gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://droplets-pcf-${DOMAIN_TOKEN}
-  gsutil mb -l ${REGION} gs://packages-pcf-${DOMAIN_TOKEN}
+  gsutil mb -l ${STORAGE_LOCATION} gs://packages-pcf-${DOMAIN_TOKEN}
   gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://packages-pcf-${DOMAIN_TOKEN}
-  gsutil mb -l ${REGION} gs://resources-pcf-${DOMAIN_TOKEN}
+  gsutil mb -l ${STORAGE_LOCATION} gs://resources-pcf-${DOMAIN_TOKEN}
   gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://resources-pcf-${DOMAIN_TOKEN}
 }
 
@@ -215,16 +218,16 @@ ops_manager () {
   gcloud compute --project "${PROJECT}" images create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}" --family "pcf-ops-manager" --description "Primary disk for Pivotal Cloud Foundry Operations Manager" --source-uri "https://storage.googleapis.com/$IMAGE_URI"
 
   # make sure we can get to it
-  gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION}"
-  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION}"  | jq --raw-output ".address"`
+  gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"
+  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction start -z "${DNS_ZONE}"
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "manager.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A ${OPS_MANAGER_ADDRESS}
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
 
-  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE} --machine-type "n1-standard-1" --subnet "pcf-${REGION}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com="https://www.googleapis.com/auth/cloud-platform" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager"
+  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com="https://www.googleapis.com/auth/cloud-platform" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager"
   ssh-keygen -P "" -t rsa -f ubuntu-key -b 4096 -C ubuntu@local
   sed -i.gcp '1s/^/ubuntu: /' ubuntu-key.pub
-  gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE}" --metadata-from-file "ssh-keys=ubuntu-key.pub"
+  gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=ubuntu-key.pub"
   mv ubuntu-key.pub.gcp ubuntu-key.pub
 
   # noticed I was getting 502 errors on the setup calls below, so sleeping to see if that helps
@@ -246,6 +249,11 @@ ops_manager () {
 
 products () {
   cloud_foundry
+  mysql
+  rabbit
+  redis
+  spring_cloud_services
+  service_broker
 }
 
 cloud_foundry () {
@@ -268,6 +276,13 @@ cloud_foundry () {
   PCF_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"cf\" )"`
   curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
     -H "Accept: application/json" -d "{\"name\": \"cf\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+  # grab the guid of the staged product to use it for later configuration
+  PCF_GUID=`curl -qs --insecure "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output '.[] | select( .type == "cf" ) .guid'`
+
+  # Use these variables to set up the load balancers with the ops manager API
+  ROUTER_GUID=`curl -qs --insecure "https://manager.${SUBDOMAIN}/api/v0/staged/products/${PCF_GUID}/jobs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq '.jobs [] | select ( .name == "router" ) .guid'`
+  TCP_ROUTER_GUID=`curl -qs --insecure "https://manager.${SUBDOMAIN}/api/v0/staged/products/${PCF_GUID}/jobs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq '.jobs [] | select ( .name == "tcp_router" ) .guid'`
+  BRAIN_GUID=`curl -qs --insecure "https://manager.${SUBDOMAIN}/api/v0/staged/products/${PCF_GUID}/jobs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq '.jobs [] | select ( .name == "diego_brain" ) .guid'`
 
   # provide the necessary DNS records for the internal MySQL database
   gcloud dns record-sets transaction start -z "${DNS_ZONE}"
@@ -281,26 +296,156 @@ cloud_foundry () {
   #     -d "{ \"product_name\": \"elastic-runtime\", \"version\": \"${PCF_VERSION}\" }"
 }
 
+mysql () {
+  MYSQL_RELEASES_URL="https://network.pivotal.io/api/v2/products/p-mysql/releases"
+  MYSQL_TILE_FILE="$TMPDIR/p-mysql-${MYSQL_VERSION}.pivotal"
+
+  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $MYSQL_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$MYSQL_VERSION\" ) ._links .product_files .href"`
+  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] ._links .download .href'`
+  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
+
+  echo "Downloading MySQL Service from $DOWNLOAD_URL..."
+  curl -qsf -o $MYSQL_TILE_FILE $DOWNLOAD_URL
+
+  echo "Uploading MySQL Service to Operations Manager..."
+  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -F "product[file]=@${MYSQL_TILE_FILE}"
+
+  echo "Staging MySQL Service..."
+  MYSQL_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"p-mysql\" )"`
+  PRODUCT_NAME=`echo $MYSQL_PRODUCT | jq --raw-output ".name"`
+  AVAILABLE_VERSION=`echo $MYSQL_PRODUCT | jq --raw-output ".product_version"`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+}
+
+rabbit () {
+  RABBIT_RELEASES_URL="https://network.pivotal.io/api/v2/products/pivotal-rabbitmq-service/releases"
+  RABBIT_TILE_FILE="$TMPDIR/p-rabbit-${RABBIT_VERSION}.pivotal"
+
+  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $RABBIT_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$RABBIT_VERSION\" ) ._links .product_files .href"`
+  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] ._links .download .href'`
+  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
+
+  echo "Downloading Rabbit MQ Service from $DOWNLOAD_URL..."
+  curl -qsf -o $RABBIT_TILE_FILE $DOWNLOAD_URL
+
+  echo "Uploading Rabbit MQ Service to Operations Manager..."
+  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -F "product[file]=@${RABBIT_TILE_FILE}"
+
+  echo "Staging Rabbit MQ Service..."
+  RABBIT_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"p-rabbitmq\" )"`
+  PRODUCT_NAME=`echo $RABBIT_PRODUCT | jq --raw-output ".name"`
+  AVAILABLE_VERSION=`echo $RABBIT_PRODUCT | jq --raw-output ".product_version"`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+}
+
+redis () {
+  REDIS_RELEASES_URL="https://network.pivotal.io/api/v2/products/p-redis/releases"
+  REDIS_TILE_FILE="$TMPDIR/p-redis-${REDIS_VERSION}.pivotal"
+
+  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $REDIS_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$REDIS_VERSION\" ) ._links .product_files .href"`
+  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] ._links .download .href'`
+  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
+
+  echo "Downloading Redis Service from $DOWNLOAD_URL..."
+  curl -qsf -o $REDIS_TILE_FILE $DOWNLOAD_URL
+
+  echo "Uploading Redis Service to Operations Manager..."
+  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -F "product[file]=@${REDIS_TILE_FILE}"
+
+  echo "Staging Redis Service..."
+  REDIS_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"p-redis\" )"`
+  PRODUCT_NAME=`echo $REDIS_PRODUCT | jq --raw-output ".name"`
+  AVAILABLE_VERSION=`echo $REDIS_PRODUCT | jq --raw-output ".product_version"`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+}
+
+spring_cloud_services () {
+  SCS_RELEASES_URL="https://network.pivotal.io/api/v2/products/p-spring-cloud-services/releases"
+  SCS_TILE_FILE="$TMPDIR/p-spring-cloud-services-${SCS_VERSION}.pivotal"
+
+  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $SCS_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$SCS_VERSION\" ) ._links .product_files .href"`
+  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] | select ( .name == "Spring Cloud Services Product Installer" ) ._links .download .href'`
+  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
+
+  echo "Downloading Spring Cloud Services from $DOWNLOAD_URL..."
+  curl -qsf -o $SCS_TILE_FILE $DOWNLOAD_URL
+
+  echo "Uploading Spring Cloud Services to Operations Manager..."
+  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -F "product[file]=@${SCS_TILE_FILE}"
+
+  echo "Staging Spring Cloud Services..."
+  SCS_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"p-spring-cloud-services\" )"`
+  PRODUCT_NAME=`echo $SCS_PRODUCT | jq --raw-output ".name"`
+  AVAILABLE_VERSION=`echo $SCS_PRODUCT | jq --raw-output ".product_version"`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+
+}
+
 service_broker () {
   # prepare for the google service broker
+  GCP_VERSION_TOKEN=`echo ${GCP_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
+  GCP_VERSION_NUM=`echo ${GCP_VERSION} | sed 's/[^0-9.]*//g'`
+
   gcloud iam service-accounts create "service-broker-${DOMAIN_TOKEN}" --display-name bosh
   gcloud iam service-accounts keys create ${PROJECT}-service-broker-${DOMAIN_TOKEN}.json --iam-account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner"
-  gcloud sql --project="${PROJECT}" instances create "gcp-service-broker-db-${DOMAIN_TOKEN}" --assign-ip --require-ssl --authorized-networks="${ALL_INTERNET}" --region=${REGION}  --gce-zone=${AVAILABILITY_ZONE}
-  gcloud sql --project="${PROJECT}" instances set-root-password "gcp-service-broker-db-${DOMAIN_TOKEN}" --password="crest-tory-hump-anode"
+  gcloud sql --project="${PROJECT}" instances create "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --assign-ip --require-ssl --authorized-networks="${ALL_INTERNET}" --region=${REGION_1}  --gce-zone=${AVAILABILITY_ZONE_1}
+  gcloud sql --project="${PROJECT}" instances set-root-password "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --password="crest-tory-hump-anode"
   # server connection requirements
-  gcloud --format json sql instances describe "gcp-service-broker-db-${DOMAIN_TOKEN}" | jq --raw-output '.serverCaCert .cert ' > gcp-service-broker-db-server.crt
-  gcloud --format json sql instances describe "gcp-service-broker-db-${DOMAIN_TOKEN}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > gcp-service-broker-db.ip
+  gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output '.serverCaCert .cert ' > gcp-service-broker-db-server.crt
+  gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > gcp-service-broker-db.ip
   # client connection requirements
-  gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" gcp-service-broker-db-client.key --instance "gcp-service-broker-db-${DOMAIN_TOKEN}"
-  gcloud sql --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "gcp-service-broker-db-${DOMAIN_TOKEN}" | jq --raw-output ' .cert ' > gcp-service-broker-db-client.crt
+  gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" gcp-service-broker-db-client.key --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
+  gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .cert ' > gcp-service-broker-db-client.crt
   # setup a user
-  mysql -uroot -pcrest-tory-hump-anode -h 173.194.243.151 --ssl-ca=gcp-service-broker-db-server.crt \
+  gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "arachnid-souvenir-brunch" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
+
+  # setup a database for the servicebroker
+  GCP_AUTH_TOKEN=`gcloud auth application-default print-access-token`
+  curl -q -X POST "https://www.googleapis.com/sql/v1beta4/projects/fe-cdantonio/instances/gcp-service-broker-2-0-1-crdant-io/databases" \
+    -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d '{ "instance": "gcp-service-broker-2-0-1-crdant-io", "name": "servicebroker", "project": "fe-cdantonio" }'
+
+  # setup a database and add permissions for the servicebroker user
+  mysql -uroot -pcrest-tory-hump-anode -h `cat gcp-service-broker-db.ip` --ssl-ca=gcp-service-broker-db-server.crt \
     --ssl-cert=gcp-service-broker-db-client.crt --ssl-key=gcp-service-broker-db-client.key <<SQL
-  CREATE DATABASE servicebroker;
-  CREATE USER 'pcf'@'%' IDENTIFIED BY 'arachnid-souvenir-brunch';
   GRANT ALL PRIVILEGES ON servicebroker.* TO 'pcf'@'%' WITH GRANT OPTION;
 SQL
+
+  # download the broker and make it available
+  GCP_RELEASES_URL="https://network.pivotal.io/api/v2/products/gcp-service-broker/releases"
+  GCP_TILE_FILE="$TMPDIR/p-gcp-service-broker-${GCP_VERSION_TOKEN}.pivotal"
+
+  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $GCP_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$GCP_VERSION\" ) ._links .product_files .href"`
+  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output ".product_files[] | select ( .file_version == \"$GCP_VERSION_NUM\" ) ._links .download .href"`
+  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
+
+  echo "Downloading GCP Service Broker from $DOWNLOAD_URL..."
+  curl -qsf -o $GCP_TILE_FILE $DOWNLOAD_URL
+
+  echo "Uploading GCP Service Broker to Operations Manager..."
+  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -F "product[file]=@${GCP_TILE_FILE}"
+
+  # IN PROGRESS
+  echo "Staging GCP Service Broker Service..."
+  GCP_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"gcp-service-broker\" )"`
+  PRODUCT_NAME=`echo $GCP_PRODUCT | jq --raw-output ".name"`
+  AVAILABLE_VERSION=`echo $GCP_PRODUCT | jq --raw-output ".product_version"`
+  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
 }
 
 env
