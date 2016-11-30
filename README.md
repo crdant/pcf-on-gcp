@@ -14,7 +14,7 @@ You can add other variables there to override the variables in lib/env.sh. Some 
 but you can customize them otherwise using personal.sh today. You should look through `lib/env.sh` to make sure you are happy with the
 default (especially the region and availability zone variables, and the various product version variables).
 
-There is also an assumption that the environment variable PIVNET_TOKEN is set in your environment (I do that in my .zshenv). If you
+There is also an assumption that the environment variable PIVNET_TOKEN is set in your environment (I do that in my `.zshenv`). If you
 don't already have it set to your Pivotal Network API token, you can set that in `personal.sh` as well.
 
 ## Steps to Install
