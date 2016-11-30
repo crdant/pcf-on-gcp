@@ -2,8 +2,7 @@
 # prepare to install PCF on GCP
 
 . lib/env.sh
-. lib/personal.sh
-
+. personal.sh
 . lib/login_ops_manager.sh
 . lib/eula.sh
 . lib/download_product.sh
@@ -27,7 +26,7 @@ network () {
   gcloud compute --project "${PROJECT}" networks create "pcf-${DOMAIN_TOKEN}" --description "Network for crdant.io Cloud Foundry installation. Creating with a single subnet." --mode "custom"
 
   # create a single subnet in us-east1 (parameterize REGION_1 and names later)
-  gcloud compute --project "${PROJECT}" networks subnets create "pcf-${REGION_1}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}" --range ${CIDR}
+  gcloud compute --project "${PROJECT}" networks subnets create "pcf-${REGION_1}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --region "${REGION_1}" --range ${CIDR}
 
   # create necessary firewall rules
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-allow-internal-traffic-${DOMAIN_TOKEN}" --allow "tcp:0-65535,udp:0-65535,icmp" --description "Enable traffic between all VMs managed by Ops Manager and BOSH" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR}
@@ -78,9 +77,9 @@ load_balancers () {
 
   # SSH
   SSH_LOAD_BALANCER_NAME="pcf-ssh-${DOMAIN_TOKEN}"
-  gcloud compute --project "${PROJECT}" addresses create "${SSH_LOAD_BALANCER_NAME}" --REGION_1 "${REGION_1}"
-  gcloud compute --project "${PROJECT}" target-pools create "${SSH_LOAD_BALANCER_NAME}" --description "Target pool for load balancing SSH access to PCF instances" --REGION_1 "${REGION_1}" --session-affinity "NONE"
-  gcloud compute --project "${PROJECT}" forwarding-rules create "${SSH_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing SSH access to PCF instances\"" --REGION_1 "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-ssh-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "2222" --target-pool "${SSH_LOAD_BALANCER_NAME}"
+  gcloud compute --project "${PROJECT}" addresses create "${SSH_LOAD_BALANCER_NAME}" --region "${REGION_1}"
+  gcloud compute --project "${PROJECT}" target-pools create "${SSH_LOAD_BALANCER_NAME}" --description "Target pool for load balancing SSH access to PCF instances" --region "${REGION_1}" --session-affinity "NONE"
+  gcloud compute --project "${PROJECT}" forwarding-rules create "${SSH_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing SSH access to PCF instances\"" --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-ssh-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "2222" --target-pool "${SSH_LOAD_BALANCER_NAME}"
 
   # HTTP(S)
   HTTP_LOAD_BALANCER_NAME="pcf-http-router-${DOMAIN_TOKEN}"
@@ -99,15 +98,15 @@ load_balancers () {
 
   # Websockets (documentation says it reuses a bunch of stuff from the HTTP LB)
   WS_LOAD_BALANCER_NAME="pcf-websockets-${DOMAIN_TOKEN}"
-  gcloud compute --project "${PROJECT}" addresses create "${WS_LOAD_BALANCER_NAME}" --REGION_1 "${REGION_1}"
-  gcloud compute --project "${PROJECT}" target-pools create "${WS_LOAD_BALANCER_NAME}" --description "Target pool for load balancing web access to PCF instances" --REGION_1 "${REGION_1}" --session-affinity "NONE"  --http-health-check "pcf-http-router-health-check-${DOMAIN_TOKEN}"
-  gcloud compute --project "${PROJECT}" forwarding-rules create "${WS_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing web access to PCF instances." --REGION_1 "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-websockets-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-pool "${WS_LOAD_BALANCER_NAME}"
+  gcloud compute --project "${PROJECT}" addresses create "${WS_LOAD_BALANCER_NAME}" --region "${REGION_1}"
+  gcloud compute --project "${PROJECT}" target-pools create "${WS_LOAD_BALANCER_NAME}" --description "Target pool for load balancing web access to PCF instances" --region "${REGION_1}" --session-affinity "NONE"  --http-health-check "pcf-http-router-health-check-${DOMAIN_TOKEN}"
+  gcloud compute --project "${PROJECT}" forwarding-rules create "${WS_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing web access to PCF instances." --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-websockets-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-pool "${WS_LOAD_BALANCER_NAME}"
 
   # TCP Routing
   TCP_LOAD_BALANCER_NAME="pcf-tcp-router-${DOMAIN_TOKEN}"
-  gcloud compute --project "${PROJECT}" addresses create "${TCP_LOAD_BALANCER_NAME}" --REGION_1 "${REGION_1}"
-  gcloud compute --project "${PROJECT}" target-pools create "${TCP_LOAD_BALANCER_NAME}" --description "Target pool for load balancing web access to PCF instances" --REGION_1 "${REGION_1}" --session-affinity "NONE"
-  gcloud compute --project "${PROJECT}" forwarding-rules create "${TCP_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing web access to PCF instances." --REGION_1 "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-tcp-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "1024-65535" --target-pool "${TCP_LOAD_BALANCER_NAME}"
+  gcloud compute --project "${PROJECT}" addresses create "${TCP_LOAD_BALANCER_NAME}" --region "${REGION_1}"
+  gcloud compute --project "${PROJECT}" target-pools create "${TCP_LOAD_BALANCER_NAME}" --description "Target pool for load balancing web access to PCF instances" --region "${REGION_1}" --session-affinity "NONE"
+  gcloud compute --project "${PROJECT}" forwarding-rules create "${TCP_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing web access to PCF instances." --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/REGION_1s/${REGION_1}/addresses/pcf-tcp-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "1024-65535" --target-pool "${TCP_LOAD_BALANCER_NAME}"
   echo "Load balancers for Router: tcp:pcf-websockets-${DOMAIN_TOKEN},http:pcf-http-router-${DOMAIN_TOKEN}"
   echo "Load balancer for Deigo Brain: tcp:pcf-ssh-${DOMAIN_TOKEN}"
   echo "Load balancer for TCP Router: tcp:pcf-tcp-router-${DOMAIN_TOKEN}"
@@ -131,16 +130,16 @@ dns () {
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}"
 
   # ssh router
-  SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${SSH_LOAD_BALANCER_NAME}" --REGION_1 "${REGION_1}"  | jq --raw-output ".address"`
+  SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${SSH_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "ssh.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${SSH_ADDRESS}"
 
   # websockets router
-  WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --REGION_1 "${REGION_1}"  | jq --raw-output ".address"`
+  WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "doppler.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}"
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "loggregator.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}"
 
   # tcp router
-  TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --REGION_1 "${REGION_1}"  | jq --raw-output ".address"`
+  TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "tcp.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${TCP_ADDRESS}"
 
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
@@ -211,8 +210,8 @@ ops_manager () {
   gcloud compute --project "${PROJECT}" images create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}" --family "pcf-ops-manager" --description "Primary disk for Pivotal Cloud Foundry Operations Manager" --source-uri "https://storage.googleapis.com/$IMAGE_URI"
 
   # make sure we can get to it
-  gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"
-  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}"  | jq --raw-output ".address"`
+  gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"
+  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction start -z "${DNS_ZONE}"
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "manager.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A ${OPS_MANAGER_ADDRESS}
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"

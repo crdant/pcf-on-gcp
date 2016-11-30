@@ -5,7 +5,7 @@
 # created by OpsManager (or otherwise) that depend on these prerequisites still exist
 
 . lib/env.sh
-. lib/personal.sh
+. personal.sh
 
 setup () {
   # make sure our API components are up-to-date
@@ -54,13 +54,13 @@ blobstore () {
 
 ops_manager () {
   # remove from DNS
-  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --REGION_1 "${REGION_1}" | jq --raw-output ".address"`
+  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}" | jq --raw-output ".address"`
   gcloud dns record-sets transaction start -z ${DNS_ZONE}
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "manager.${SUBDOMAIN}" --ttl ${DNS_TTL} --type A ${OPS_MANAGER_ADDRESS}
   gcloud dns record-sets transaction execute -z ${DNS_ZONE}
 
   # release public IP
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-ops-manager-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "pcf-ops-manager-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
 
   # drop Ops Manager
   gcloud compute --project "${PROJECT}" instances delete "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
@@ -71,14 +71,14 @@ ops_manager () {
 load_balancers () {
   # tear down load balancers
   # TCP Routing
-  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-tcp-router-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" target-pools delete "pcf-tcp-router-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-tcp-router-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-tcp-router-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" target-pools delete "pcf-tcp-router-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "pcf-tcp-router-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
 
   # Websockets
-  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-websockets-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" target-pools delete "pcf-websockets-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-websockets-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-websockets-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" target-pools delete "pcf-websockets-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "pcf-websockets-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
 
   # HTTP(S)
   gcloud compute --project "${PROJECT}" forwarding-rules delete --global "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule" "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule2" --quiet
@@ -92,9 +92,9 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" addresses delete "pcf-http-router-${DOMAIN_TOKEN}" --global --quiet
 
   # SSH
-  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-ssh-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" target-pools delete "pcf-ssh-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-ssh-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" target-pools delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
 
   # remove the instance group that they load balancers depend on
   gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_1}."
@@ -113,16 +113,16 @@ dns () {
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.system.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
 
   # ssh router
-  SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ssh-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1}  | jq --raw-output ".address"`
+  SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1}  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "ssh.pcf.${SUBDOMAIN}" --ttl 300 --type A ${SSH_ADDRESS} --quiet
 
   # websockets router
-  WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-websockets-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1}  | jq --raw-output ".address"`
+  WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-websockets-${DOMAIN_TOKEN}" --region ${REGION_1}  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "doppler.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "loggregator.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet
 
   # tcp router
-  TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-tcp-router-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1}  | jq --raw-output ".address"`
+  TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-tcp-router-${DOMAIN_TOKEN}" --region ${REGION_1}  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "tcp.${SUBDOMAIN}" --ttl 300 --type A ${TCP_ADDRESS} --quiet
 
   gcloud dns record-sets transaction execute -z ${DNS_ZONE} --quiet
@@ -151,7 +151,7 @@ network () {
   gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-tcp-load-balancers-${DOMAIN_TOKEN}" --quiet
 
   # remove the a network
-  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-${REGION_1}-${DOMAIN_TOKEN}" --REGION_1 ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-${REGION_1}-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
   gcloud compute --project "${PROJECT}" networks delete "pcf-${DOMAIN_TOKEN}" --quiet
 }
 

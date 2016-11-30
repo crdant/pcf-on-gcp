@@ -3,7 +3,7 @@
 # created by OpsManager (or otherwise) that depend on these prerequisites still exist
 
 . lib/env.sh
-. lib/personal.sh
+. personal.sh
 
 setup () {
   # make sure our API components are up-to-date
