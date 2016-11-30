@@ -2,24 +2,7 @@
 # currently handles only the resources that prepare.sh creates, and will fail due to dependencies if resources
 # created by OpsManager (or otherwise) that depend on these prerequisites still exist
 
-env () {
-  ACCOUNT="cdantonio@pivotal.io"
-  PROJECT="fe-cdantonio"
-  DOMAIN=crdant.io
-
-  REGION_1="us-east1"
-  AVAILABILITY_ZONE_1="${REGION_1}-b"
-  STORAGE_LOCATION="us"
-  DOMAIN_TOKEN=`echo ${DOMAIN} | tr . -`
-  SUBDOMAIN="gcp.${DOMAIN}"
-  DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
-  DNS_TTL=300
-  CIDR="10.0.0.0/20"
-  ALL_INTERNET="0.0.0.0/0"
-  OPS_MANAGER_VERSION="1.8.10"
-  OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
-  PCF_VERSION="1.8.16"
-}
+. lib/env.sh
 
 setup () {
   # make sure our API components are up-to-date

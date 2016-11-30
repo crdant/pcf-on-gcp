@@ -2,29 +2,7 @@
 
 # prepare to install PCF on GCP
 
-env () {
-  ACCOUNT="cdantonio@pivotal.io"
-  PROJECT="fe-cdantonio"
-  DOMAIN=crdant.io
-
-  REGION_1="us-east1"
-  AVAILABILITY_ZONE_1="${REGION_1}-b"
-  STORAGE_LOCATION="us"
-  DOMAIN_TOKEN=`echo ${DOMAIN} | tr . -`
-  SUBDOMAIN="gcp.${DOMAIN}"
-  DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
-  DNS_TTL=300
-  CIDR="10.0.0.0/20"
-  ALL_INTERNET="0.0.0.0/0"
-  OPS_MANAGER_VERSION="1.8.10"
-  OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
-  PCF_VERSION="1.8.16"
-  MYSQL_VERSION="1.8.0-edge.15"
-  RABBIT_VERSION="1.7.6"
-  REDIS_VERSION="1.6.2"
-  GCP_VERSION="2.0.1 (BETA)"
-  SCS_VERSION="1.3.0"
-}
+. lib/env.sh
 
 setup () {
   # make sure our API components up-to-date
