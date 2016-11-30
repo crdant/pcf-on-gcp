@@ -4,17 +4,7 @@
 
 . lib/env.sh
 . personal.sh
-
-setup () {
-  # make sure our API components are up-to-date
-  gcloud components update
-
-  # log in (parameterize later)
-  gcloud auth login cdantonio@pivotal.io
-  gcloud config set project ${PROJECT}
-  gcloud config set compute/zone ${AVAILABILITY_ZONE_1}
-  gcloud config set compute/region ${REGION_1}
-}
+. lib/setup.sh
 
 vms () {
   # pause all bosh managed VMs

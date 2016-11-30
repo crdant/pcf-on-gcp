@@ -6,17 +6,7 @@
 
 . lib/env.sh
 . personal.sh
-
-setup () {
-  # make sure our API components are up-to-date
-  gcloud components update
-
-  # log in (parameterize later)
-  gcloud auth login cdantonio@pivotal.io
-  gcloud config set project ${PROJECT}
-  gcloud config set compute/zone ${AVAILABILITY_ZONE_1}
-  gcloud config set compute/region ${REGION_1}
-}
+. lib/setup.sh
 
 vms () {
   # delete all bosh managed VMs
@@ -97,9 +87,9 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" addresses delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
 
   # remove the instance group that they load balancers depend on
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_1}."
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_2} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_2}."
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_3} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_3}."
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_2} --quiet
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_3} --quiet
 }
 
 dns () {
