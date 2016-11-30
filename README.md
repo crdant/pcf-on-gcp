@@ -2,7 +2,7 @@
 
 ## Inputs
 
-Add a file named personal.sh to include your Google account, Google project, and domain:
+Add a file named `personal.sh` to include your Google account, Google project, and domain:
 
 ```
 ACCOUNT="your-account@your-domain-or-gmail.com"
@@ -12,6 +12,9 @@ DOMAIN="domain-for-your-pcf-install"
 
 You can add other variables there to override the variables in lib/env.sh. Some of those will move into commandline arguments soon,
 but you can customize them otherwise using personal.sh today.
+
+There is also an assumption that the environment variable PIVNET_TOKEN is set in your environment (I do that in my .zshenv). If you
+don't already have it set to your Pivotal Network API token, you can set that in `personal.sh` as well.
 
 ## Steps to Install
 
