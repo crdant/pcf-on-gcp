@@ -42,7 +42,7 @@ vms () {
 
 ops_manager () {
   # pause Ops Manager
-  gcloud compute --project "${PROJECT}" instances start "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE}" --quiet
+  gcloud compute --project "${PROJECT}" instances start "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --quiet
 }
 
 bosh_cck () {
