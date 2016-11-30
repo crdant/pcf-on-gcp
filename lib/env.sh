@@ -1,10 +1,6 @@
 # common environmnet configuration for these scripts
 
 env () {
-  ACCOUNT="cdantonio@pivotal.io"
-  PROJECT="fe-cdantonio"
-  DOMAIN=crdant.io
-
   REGION_1="us-east1"
   STORAGE_LOCATION="us"
   AVAILABILITY_ZONE_1="${REGION_1}-b"
