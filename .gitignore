@@ -1,15 +1,10 @@
 transaction.yaml
-vcap-key
-vcap-key.pub
 personal.sh
 domain.csr
-ert-after.json
-ert-before.json
 gcp-service-broker-db-client.crt
 gcp-service-broker-db-client.key
 gcp-service-broker-db-server.crt
 gcp-service-broker-db.ip
-ubuntu-key
-ubuntu-key.pub
+keys/*
 *-bosh-opsman-*.json
 *-service-broker-*.json
