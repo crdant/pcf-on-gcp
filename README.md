@@ -38,7 +38,7 @@ director in your environment.  There are some steps there that are not easily do
 be able to do some additional automation there.
 
 **NOTE: When you run the install script you will be accepting the EULA(s) for the product(s) you are installing. I strongly recommend you review
-any EULA you are agreeing to before you accept it. **
+any EULA you are agreeing to before you accept it.**
 
 ```
 $ install.sh
