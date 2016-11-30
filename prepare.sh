@@ -2,10 +2,10 @@
 # prepare to install PCF on GCP
 
 . lib/env.sh
+. lib/customization_hooks.sh
 . personal.sh
 . lib/setup.sh
 . lib/login_ops_manager.sh
-. lib/customization_hooks.sh
 
 network () {
   # create a network (parameterize the network name and project later)
