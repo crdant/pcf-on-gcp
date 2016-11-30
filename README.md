@@ -57,6 +57,13 @@ install.sh [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ 
 Two scripts `start.sh` and `stop.sh` will start and stop the instances that are running your PCF installation at the GCP level. They take
 advantage of the tag that BOSH adds to all instances it creates and use the `gcloud` CLI to
 
+## Customizing
+
+The file `lib/customization_hooks.sh` contains default functions that are meant to be "overridden" in `personal.sh` to change the behavior
+of the other scripts. At this point, the only available customization is a script to update the root DNS for the domain you are installing
+for.  I needed this because I was using a domain managed at Amazon but managing the subdomain DNS for this installation at Google using
+these scripts.  You might need something similar if you aren't managing the domain at Google.
+
 ## Steps to Uninstall
 
 Use the `teardown.sh` script to teardown your installation. There will be no trace of it left on GCP.
