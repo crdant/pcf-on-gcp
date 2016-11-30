@@ -52,6 +52,10 @@ parse_args () {
             INSTALL_GEMFIRE=1
             INSTALL_CONCOURSE=1
             ;;
+          "--help")
+            usage
+            exit 1
+            ;;
           *)
             usage
             exit 1
