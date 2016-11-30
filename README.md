@@ -7,7 +7,7 @@ Add a file named `personal.sh` to include your Google account, Google project, a
 ```
 ACCOUNT="your-account@your-domain-or-gmail.com"
 PROJECT="your-project"
-DOMAIN="domain-for-your-pcf-install"
+DOMAIN="domain-for-your-pcf-install.tld"
 ```
 
 You can add other variables there to override the variables in lib/env.sh. Some of those will move into commandline arguments soon,
