@@ -11,3 +11,5 @@ gcp-service-broker-db-server.crt
 gcp-service-broker-db.ip
 ubuntu-key
 ubuntu-key.pub
+*-bosh-opsman-*.json
+*-service-broker-*.json
