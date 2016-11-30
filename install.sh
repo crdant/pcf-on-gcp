@@ -15,7 +15,7 @@ parse_args () {
   if [ $# -eq 0 ] ; then
     set_defaults
   else
-    while [ $# -gt 1 ] ; do
+    while [ $# -gt 0 ] ; do
       product=$1
       case $product in
           "pcf")
@@ -54,6 +54,7 @@ parse_args () {
             ;;
           *)
             usage
+            exit 1
             ;;
       esac
       shift
@@ -254,8 +255,8 @@ concourse () {
   CONCOURSE_GUID=`product_guid "p-concourse"`
 }
 
+parse_args $@
 env
 setup
-parse_args $@
-# login_ops_manager
-# products
+login_ops_manager
+products
