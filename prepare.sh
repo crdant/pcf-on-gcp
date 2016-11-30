@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # prepare to install PCF on GCP
 
-. lib/personal.sh
 . lib/env.sh
+. lib/personal.sh
+
 . lib/login_ops_manager.sh
 . lib/eula.sh
 . lib/download_product.sh
