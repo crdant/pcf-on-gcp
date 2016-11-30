@@ -35,10 +35,10 @@ security () {
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/compute.storageAdmin"
 
   # setup VCAP SSH for all boxen, this will erase existing SSH keys (FIX!)
-  ssh-keygen -P "" -t rsa -f vcap-key -b 4096 -C vcap@local
-  sed -i.gcp '1s/^/vcap: /' vcap-key.pub
-  gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file sshKeys=vcap-key.pub
-  mv vcap-key.pub.gcp vcap-key.pub
+  ssh-keygen -P "" -t rsa -f keys/vcap-key -b 4096 -C vcap@local
+  sed -i.gcp '1s/^/vcap: /' keys/vcap-key.pub
+  gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file sshKeys=keys/vcap-key.pub
+  mv keys/vcap-key.pub.gcp keys/vcap-key.pub
 }
 
 ssl_certs () {
@@ -99,6 +99,7 @@ dns () {
 
   # NB: By default update_root_dns won't do anything. See lib/customization_hooks.sh for more info.
   update_root_dns
+  echo "Waiting for ${DNS_TTL} seconds for the Root DNS to sync up..."
   sleep "${DNS_TTL}"
 
   gcloud dns record-sets transaction start -z "${DNS_ZONE}"
@@ -158,10 +159,10 @@ ops_manager () {
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
 
   gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com="https://www.googleapis.com/auth/cloud-platform" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager"
-  ssh-keygen -P "" -t rsa -f ubuntu-key -b 4096 -C ubuntu@local
-  sed -i.gcp '1s/^/ubuntu: /' ubuntu-key.pub
-  gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=ubuntu-key.pub"
-  mv ubuntu-key.pub.gcp ubuntu-key.pub
+  ssh-keygen -P "" -t rsa -f keys/ubuntu-key -b 4096 -C ubuntu@local
+  sed -i.gcp '1s/^/ubuntu: /' keys/ubuntu-key.pub
+  gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=keys/ubuntu-key.pub"
+  mv keys/ubuntu-key.pub.gcp keys/ubuntu-key.pub
 
   # noticed I was getting 502 errors on the setup calls below, so sleeping to see if that helps
   sleep 60

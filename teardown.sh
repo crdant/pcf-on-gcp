@@ -56,7 +56,7 @@ ops_manager () {
   # drop Ops Manager
   gcloud compute --project "${PROJECT}" instances delete "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
   gcloud compute --project "${PROJECT}" images delete "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}" --quiet
-  rm ubuntu-key ubuntu-key.pub
+  rm keys/ubuntu-key keys/ubuntu-key.pub
 }
 
 load_balancers () {
@@ -127,7 +127,7 @@ dns () {
 security () {
   # remove VCAP SSH from metadata provided to all boxen, this will not preserve keys that were added in different ways (FIX!)
   gcloud compute --project=${PROJECT} project-info remove-metadata --keys sshKeys --quiet
-  rm vcap-key vcap-key.pub
+  rm keys/vcap-key keys/vcap-key.pub
 
   # delete the service account
   gcloud iam service-accounts delete bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
