@@ -4,7 +4,10 @@ export DOMAIN=crdant.io
 
 export REGION_1="us-east1"
 export AVAILABILITY_ZONE_1="${REGION_1}-b"
+export AVAILABILITY_ZONE_2="${REGION_1}-c"
+export AVAILABILITY_ZONE_3="${REGION_1}-d"
 export STORAGE_LOCATION="us"
+
 export DOMAIN_TOKEN=`echo ${DOMAIN} | tr . -`
 export SUBDOMAIN="gcp.${DOMAIN}"
 export DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
