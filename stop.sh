@@ -3,7 +3,9 @@
 # created by OpsManager (or otherwise) that depend on these prerequisites still exist
 
 . lib/env.sh
+. lib/customization_hooks.sh
 . personal.sh
+
 . lib/setup.sh
 
 vms () {
