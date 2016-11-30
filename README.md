@@ -15,6 +15,31 @@ but you can customize them otherwise using personal.sh today.
 
 ## Steps to Install
 
+The installation is split into two steps, one to prepare the Google cloud infrastructure for your installation, another to install products.
+Currently the product installation will install Cloud Foundry, MySQL, Rabbit MQ, Redis, and the GCP Service Broker. Later you will be able to
+select products and there will be more of them added.
+
+```
+$ prepare.sh
+```
+
+In between the two steps, there you need to go into the Ops Manager UI and configure the Google Cloud Platform tile. This will start the BOSH
+director in your environment.  There are some steps there that are not easily done via the Ops Manager APIs, though I have some ideas and may
+be able to do some additional automation there.
+
+```
+$ install.sh
+```
+
+## Steps to Uninstall
+
+Use the `teardown.sh` script to teardown your installation. There will be no trace of it left on GCP.
+
+```
+teardown.sh
+```
+
 ## Help
+
 Some scripts to facilitate working with PCF on Google Cloud Platform.
 Currently a private repository while I make sure there isn't anything sensitive in it.
