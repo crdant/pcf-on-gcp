@@ -1,5 +1,11 @@
 ### PCF - GCP Automation Scripts
 
+## Prerequisites
+
+  1. The GCP command-line tool `gcloud` ([get it here](https://cloud.google.com/sdk/))
+  2. `jq` for parsing JSON outputs ([installation instructions](https://stedolan.github.io/jq/download/)) 
+  3. A Pivotal Network account and API token.
+
 ## Inputs
 
 Add a file named `personal.sh` to include your Google account, Google project, and domain:
@@ -14,7 +20,7 @@ You can add other variables there to override the variables in lib/env.sh. Some 
 but you can customize them otherwise using personal.sh today. You should look through `lib/env.sh` to make sure you are happy with the
 default (especially the region and availability zone variables, and the various product version variables).
 
-There is also an assumption that the environment variable PIVNET_TOKEN is set in your environment (I do that in my `.zshenv`). If you
+There is also an assumption that the environment variable `PIVNET_TOKEN` is set in your environment (I do that in my `.zshenv`). If you
 don't already have it set to your Pivotal Network API token, you can set that in `personal.sh` as well.
 
 ## Steps to Install
@@ -43,6 +49,11 @@ $ install.sh --help
 install.sh [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ]
 ```
 
+## Starting and stopping
+
+Two scripts `start.sh` and `stop.sh` will start and stop the instances that are running your PCF installation at the GCP level. They take
+advantage of the tag that BOSH adds to all instances it creates and use the `gcloud` CLI to
+
 ## Steps to Uninstall
 
 Use the `teardown.sh` script to teardown your installation. There will be no trace of it left on GCP.
@@ -51,7 +62,4 @@ Use the `teardown.sh` script to teardown your installation. There will be no tra
 teardown.sh
 ```
 
-## Help
-
-Some scripts to facilitate working with PCF on Google Cloud Platform.
-Currently a private repository while I make sure there isn't anything sensitive in it.
+That's it. You can check the [Google Cloud Platform console](https://console.cloud.google.com) and you'll see all the resources are gone.
