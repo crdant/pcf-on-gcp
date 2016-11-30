@@ -1,12 +1,10 @@
 transaction.yaml
 vcap-key
 vcap-key.pub
-fe-cdantonio-bosh-opsman-crdant-io.json
 personal.sh
 domain.csr
 ert-after.json
 ert-before.json
-fe-cdantonio-service-broker-crdant-io.json
 gcp-service-broker-db-client.crt
 gcp-service-broker-db-client.key
 gcp-service-broker-db-server.crt
