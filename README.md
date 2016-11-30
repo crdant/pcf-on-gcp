@@ -19,8 +19,8 @@ don't already have it set to your Pivotal Network API token, you can set that in
 ## Steps to Install
 
 The installation is split into two steps, one to prepare the Google cloud infrastructure for your installation, another to install products.
-Currently the product installation will install Cloud Foundry, MySQL, Rabbit MQ, Redis, and the GCP Service Broker. Later you will be able to
-select products and there will be more of them added.
+Currently the product installation can install Cloud Foundry, MySQL, Rabbit MQ, Redis, the GCP Service Broker, Gemfire, and Concourse. More products
+will be added later.
 
 ```
 $ prepare.sh
@@ -32,6 +32,14 @@ be able to do some additional automation there.
 
 ```
 $ install.sh
+```
+
+This will install the defaults, which are Cloud Foundry, MySQL, Rabbit MQ, Redis, and the GCP Service Broker. You can also specify individual
+products. See the usage for the command.
+
+```
+$ install.sh --help
+install.sh [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ]
 ```
 
 ## Steps to Uninstall
