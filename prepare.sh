@@ -5,6 +5,7 @@
 . personal.sh
 . lib/setup.sh
 . lib/login_ops_manager.sh
+. lib/customization_hooks.sh
 
 network () {
   # create a network (parameterize the network name and project later)
@@ -128,45 +129,6 @@ dns () {
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "tcp.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${TCP_ADDRESS}"
 
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
-}
-
-update_root_dns () {
-  local ZONE_ID="Z1TS8OPDHRZ56V"
-  local DNS_COMMENT="Modifying delegation for new Google nameservers used for subdomain ${SUBDOMAIN}"
-  local CHANGE_BATCH=`mktemp -t prepare.dns.zonefile`
-  local NAME_SERVERS=( `gcloud dns managed-zones describe $DNS_ZONE --format json | jq -r  '.nameServers | join(" ")'` )
-
-  cat > ${CHANGE_BATCH} <<CHANGES
-    {
-      "Comment":"$DNS_COMMENT",
-      "Changes":[
-        {
-          "Action":"UPSERT",
-          "ResourceRecordSet":{
-            "ResourceRecords":[
-              {
-                "Value": "${NAME_SERVERS[0]}"
-              },
-              {
-                "Value": "${NAME_SERVERS[1]}"
-              },
-              {
-                "Value": "${NAME_SERVERS[2]}"
-              },
-              {
-                "Value": "${NAME_SERVERS[3]}"
-              }
-            ],
-            "Name":"${SUBDOMAIN}",
-            "Type": "NS",
-            "TTL":$DNS_TTL
-          }
-        }
-      ]
-    }
-CHANGES
-
-  aws --profile personal route53 change-resource-record-sets --hosted-zone-id ${ZONE_ID} --change-batch file://"${CHANGE_BATCH}"
 }
 
 blobstore () {
