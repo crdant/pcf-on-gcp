@@ -62,33 +62,33 @@ ops_manager () {
 load_balancers () {
   # tear down load balancers
   # TCP Routing
-  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-tcp-router-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" target-pools delete "pcf-tcp-router-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-tcp-router-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" forwarding-rules delete "${TCP_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" target-pools delete "${TCP_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "${TCP_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
 
   # Websockets
-  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-websockets-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" target-pools delete "pcf-websockets-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-websockets-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" forwarding-rules delete "${WS_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" target-pools delete "${WS_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "${WS_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
 
   # HTTP(S)
-  gcloud compute --project "${PROJECT}" forwarding-rules delete --global "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule" "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule2" --quiet
+  gcloud compute --project "${PROJECT}" forwarding-rules delete --global "${HTTP_LOAD_BALANCER_NAME}-forwarding-rule" "${HTTP_LOAD_BALANCER_NAME}-forwarding-rule2" --quiet
   gcloud compute --project "${PROJECT}" target-https-proxies delete "pcf-router-https-proxy-${DOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" target-http-proxies delete "pcf-router-http-proxy-${DOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" ssl-certificates delete "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" url-maps delete "pcf-http-router-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --quiet
+  gcloud compute --project "${PROJECT}" url-maps delete "${HTTP_LOAD_BALANCER_NAME}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --quiet
 
-  gcloud compute --project "${PROJECT}" backend-services delete "pcf-http-router-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services delete "${HTTP_LOAD_BALANCER_NAME}" --quiet
   gcloud compute --project "${PROJECT}" http-health-checks delete "pcf-http-router-health-check-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-http-router-${DOMAIN_TOKEN}" --global --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "${HTTP_LOAD_BALANCER_NAME}" --global --quiet
 
   # SSH
-  gcloud compute --project "${PROJECT}" forwarding-rules delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" target-pools delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" forwarding-rules delete "${SSH_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" target-pools delete "${SSH_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "${SSH_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
 
   # remove the instance group that they load balancers depend on
   gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
@@ -101,22 +101,22 @@ dns () {
   gcloud dns record-sets transaction start -z ${DNS_ZONE} --quiet
 
   # HTTP/S router
-  HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-http-router-${DOMAIN_TOKEN}" --global  | jq --raw-output ".address"`
+  HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${HTTP_LOAD_BALANCER_NAME}" --global  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.apps.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.pcf.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.system.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet
 
   # ssh router
-  SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ssh-${DOMAIN_TOKEN}" --region ${REGION_1}  | jq --raw-output ".address"`
+  SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${SSH_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "ssh.pcf.${SUBDOMAIN}" --ttl 300 --type A ${SSH_ADDRESS} --quiet
 
   # websockets router
-  WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-websockets-${DOMAIN_TOKEN}" --region ${REGION_1}  | jq --raw-output ".address"`
+  WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "doppler.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "loggregator.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet
 
   # tcp router
-  TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-tcp-router-${DOMAIN_TOKEN}" --region ${REGION_1}  | jq --raw-output ".address"`
+  TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "tcp.${SUBDOMAIN}" --ttl 300 --type A ${TCP_ADDRESS} --quiet
 
   gcloud dns record-sets transaction execute -z ${DNS_ZONE} --quiet
