@@ -55,7 +55,8 @@ install.sh [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ 
 ## Starting and stopping
 
 Two scripts `start.sh` and `stop.sh` will start and stop the instances that are running your PCF installation at the GCP level. They take
-advantage of the tag that BOSH adds to all instances it creates and use the `gcloud` CLI to
+advantage of the tag that BOSH adds to all instances. Since the instanes all have a common tag, the scripts use the `gcloud` CLI to find those
+instances and start/stop them with other CLI calls.
 
 ## Customizing
 
