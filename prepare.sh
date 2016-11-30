@@ -257,9 +257,10 @@ cloud_foundry () {
   echo "Downloading Cloud Foundry Elastic Runtime..."
   tile_file=`download_product "elastic-runtime" $PCF_VERSION`
   echo "Uploading Cloud Foundry Elastic Runtime..."
-  PCF_GUID=`upload_product $tile_file`
+  upload_product $tile_file
   echo "Staging Cloud Foundry Elastic Runtime..."
   stage_product "cf"
+  PCF_GUID=`product_guid "cf"`
 
   # set the load balancers resource configuration
   ROUTER_GUID=`curl -qs --insecure "https://manager.${SUBDOMAIN}/api/v0/staged/products/${PCF_GUID}/jobs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output '.jobs [] | select ( .name == "router" ) .guid'`
@@ -285,119 +286,54 @@ cloud_foundry () {
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99"
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
 
-  # N.B. We should be able to use the ops manager client for Pivnet instead of downloading an re-uploading, but
-  #      it doesn't seem to do it's thing right now.
-  # curl --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/pivotal_network/downloads" \
-  #     -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Content-Type: application/json" \
-  #     -d "{ \"product_name\": \"elastic-runtime\", \"version\": \"${PCF_VERSION}\" }"
 }
 
 mysql () {
-  MYSQL_RELEASES_URL="https://network.pivotal.io/api/v2/products/p-mysql/releases"
-  MYSQL_TILE_FILE="$TMPDIR/p-mysql-${MYSQL_VERSION}.pivotal"
-
-  EULA_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $PCF_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$PCF_VERSION\" ) ._links .eula_acceptance .href"`
-  EULA_ACCEPTED_AT=`curl -qsf -X POST -d "" -H "Authorization: Token $PIVNET_TOKEN" $EULA_URL | jq --raw-output '.accepted_at'`
-  echo "Accepted EULA for Cloud Foundry ERT at $EULA_ACCEPTED_AT"
-
-  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $MYSQL_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$MYSQL_VERSION\" ) ._links .product_files .href"`
-  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] ._links .download .href'`
-  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
-
-  echo "Downloading MySQL Service from $DOWNLOAD_URL..."
-  curl -qsf -o $MYSQL_TILE_FILE $DOWNLOAD_URL
-
-  echo "Uploading MySQL Service to Operations Manager..."
-  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -F "product[file]=@${MYSQL_TILE_FILE}"
-
+  accept_eula "p-mysql" $MYSQL_VERSION "yes"
+  echo "Downloading MySQL Service..."
+  tile_file=`download_product "p-mysql" $MYSQL_VERSION`
+  echo "Uploading MySQL Service..."
+  upload_product $tile_file
   echo "Staging MySQL Service..."
-  MYSQL_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"p-mysql\" )"`
-  PRODUCT_NAME=`echo $MYSQL_PRODUCT | jq --raw-output ".name"`
-  AVAILABLE_VERSION=`echo $MYSQL_PRODUCT | jq --raw-output ".product_version"`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+  stage_product "p-mysql"
+  MYSQL_GUID=`product_guid "p-mysql"`
 }
 
 rabbit () {
-  RABBIT_RELEASES_URL="https://network.pivotal.io/api/v2/products/pivotal-rabbitmq-service/releases"
-  RABBIT_TILE_FILE="$TMPDIR/p-rabbit-${RABBIT_VERSION}.pivotal"
-
-  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $RABBIT_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$RABBIT_VERSION\" ) ._links .product_files .href"`
-  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] ._links .download .href'`
-  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
-
-  echo "Downloading Rabbit MQ Service from $DOWNLOAD_URL..."
-  curl -qsf -o $RABBIT_TILE_FILE $DOWNLOAD_URL
-
-  echo "Uploading Rabbit MQ Service to Operations Manager..."
-  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -F "product[file]=@${RABBIT_TILE_FILE}"
-
+  accept_eula "pivotal-rabbitmq-service" $RABBIT_VERSION "yes"
+  echo "Downloading Rabbit MQ Service..."
+  tile_file=`download_product "pivotal-rabbitmq-service" $RABBIT_VERSION`
+  echo "Uploading Rabbit MQ Service..."
+  upload_product $tile_file
   echo "Staging Rabbit MQ Service..."
-  RABBIT_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"p-rabbitmq\" )"`
-  PRODUCT_NAME=`echo $RABBIT_PRODUCT | jq --raw-output ".name"`
-  AVAILABLE_VERSION=`echo $RABBIT_PRODUCT | jq --raw-output ".product_version"`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+  stage_product "p-rabbitmq"
+  RABBIT_GUID=`product_guid "p-rabbitmq"`
 }
 
 redis () {
-  REDIS_RELEASES_URL="https://network.pivotal.io/api/v2/products/p-redis/releases"
-  REDIS_TILE_FILE="$TMPDIR/p-redis-${REDIS_VERSION}.pivotal"
-
-  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $REDIS_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$REDIS_VERSION\" ) ._links .product_files .href"`
-  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] ._links .download .href'`
-  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
-
-  echo "Downloading Redis Service from $DOWNLOAD_URL..."
-  curl -qsf -o $REDIS_TILE_FILE $DOWNLOAD_URL
-
-  echo "Uploading Redis Service to Operations Manager..."
-  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -F "product[file]=@${REDIS_TILE_FILE}"
-
-  echo "Staging Redis Service..."
-  REDIS_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"p-redis\" )"`
-  PRODUCT_NAME=`echo $REDIS_PRODUCT | jq --raw-output ".name"`
-  AVAILABLE_VERSION=`echo $REDIS_PRODUCT | jq --raw-output ".product_version"`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+  accept_eula "p-redis" $REDIS_VERSION "yes"
+  echo "Downloading REDIS Service..."
+  tile_file=`download_product "pivotal-rabbitmq-service" $REDIS_VERSION`
+  echo "Uploading REDIS Service..."
+  upload_product $tile_file
+  echo "Staging REDIS Service..."
+  stage_product "p-redis"
+  REDIS_GUID=`product_guid "p-redis"`
 }
 
 spring_cloud_services () {
-  SCS_RELEASES_URL="https://network.pivotal.io/api/v2/products/p-spring-cloud-services/releases"
-  SCS_TILE_FILE="$TMPDIR/p-spring-cloud-services-${SCS_VERSION}.pivotal"
-
-  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $SCS_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$SCS_VERSION\" ) ._links .product_files .href"`
-  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] | select ( .name == "Spring Cloud Services Product Installer" ) ._links .download .href'`
-  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
-
-  echo "Downloading Spring Cloud Services from $DOWNLOAD_URL..."
-  curl -qsf -o $SCS_TILE_FILE $DOWNLOAD_URL
-
-  echo "Uploading Spring Cloud Services to Operations Manager..."
-  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -F "product[file]=@${SCS_TILE_FILE}"
-
+  accept_eula "p-redis" $SCS_VERSION "yes"
+  echo "Downloading Spring Cloud Services..."
+  tile_file=`download_product "p-spring-cloud-services" $SCS_VERSION`
+  echo "Uploading Spring Cloud Services..."
+  upload_product $tile_file
   echo "Staging Spring Cloud Services..."
-  SCS_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"p-spring-cloud-services\" )"`
-  PRODUCT_NAME=`echo $SCS_PRODUCT | jq --raw-output ".name"`
-  AVAILABLE_VERSION=`echo $SCS_PRODUCT | jq --raw-output ".product_version"`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
-
+  stage_product "p-spring-cloud-services"
+  SCS_GUID=`product_guid "p-spring-cloud-services"`
 }
 
 service_broker () {
   # prepare for the google service broker
-  GCP_VERSION_TOKEN=`echo ${GCP_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
-  GCP_VERSION_NUM=`echo ${GCP_VERSION} | sed 's/[^0-9.]*//g'`
-
   gcloud iam service-accounts create "service-broker-${DOMAIN_TOKEN}" --display-name bosh
   gcloud iam service-accounts keys create ${PROJECT}-service-broker-${DOMAIN_TOKEN}.json --iam-account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner"
@@ -424,28 +360,14 @@ service_broker () {
 SQL
 
   # download the broker and make it available
-  GCP_RELEASES_URL="https://network.pivotal.io/api/v2/products/gcp-service-broker/releases"
-  GCP_TILE_FILE="$TMPDIR/p-gcp-service-broker-${GCP_VERSION_TOKEN}.pivotal"
-
-  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $GCP_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$GCP_VERSION\" ) ._links .product_files .href"`
-  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output ".product_files[] | select ( .file_version == \"$GCP_VERSION_NUM\" ) ._links .download .href"`
-  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
-
-  echo "Downloading GCP Service Broker from $DOWNLOAD_URL..."
-  curl -qsf -o $GCP_TILE_FILE $DOWNLOAD_URL
-
-  echo "Uploading GCP Service Broker to Operations Manager..."
-  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -F "product[file]=@${GCP_TILE_FILE}"
-
-  # IN PROGRESS
-  echo "Staging GCP Service Broker Service..."
-  GCP_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"gcp-service-broker\" )"`
-  PRODUCT_NAME=`echo $GCP_PRODUCT | jq --raw-output ".name"`
-  AVAILABLE_VERSION=`echo $GCP_PRODUCT | jq --raw-output ".product_version"`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+  accept_eula "gcp-service-broker" $GCP_VERSION "yes"
+  echo "Downloading GCP Service Broker..."
+  tile_file=`download_product "p-spring-cloud-services" $GCP_VERSION`
+  echo "Uploading GCP Service Broker..."
+  upload_product $tile_file
+  echo "Staging GCP Service Broker..."
+  stage_product "gcp-service-broker"
+  GCP_GUID=`product_guid "gcp-service-broker"`
 }
 
 env
