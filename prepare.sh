@@ -101,9 +101,7 @@ load_balancers () {
 dns () {
   gcloud dns managed-zones create ${DNS_ZONE} --dns-name "${SUBDOMAIN}." --description "Zone for ${SUBDOMAIN}"
 
-  # NB: My domain is managed by Route 53 and google seems to change the name servers every time I make a call to manage
-  #     the subdomain with them. Since I want these scripts to complete create and teardown everything they need, I need
-  #     to coordinate between the two. You may not need this.
+  # NB: By default update_root_dns won't do anything. See lib/customization_hooks.sh for more info.
   update_root_dns
   sleep "${DNS_TTL}"
 
