@@ -10,6 +10,9 @@ PROJECT="your-project"
 DOMAIN="domain-for-your-pcf-install"
 ```
 
+You can add other variables there to override the variables in lib/env.sh. Some of those will move into commandline arguments soon,
+but you can customize them otherwise using personal.sh today.
+
 ## Steps to Install
 
 ## Help
