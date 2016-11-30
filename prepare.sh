@@ -34,7 +34,7 @@ setup () {
   gcloud auth login ${ACCOUNT}
   gcloud config set project ${PROJECT}
   gcloud config set compute/zone ${AVAILABILITY_ZONE_1}
-  gcloud config set compute/REGION_1 ${REGION_1}
+  gcloud config set compute/region ${REGION_1}
 }
 
 network () {
@@ -264,6 +264,10 @@ cloud_foundry () {
   PCF_RELEASES_URL="https://network.pivotal.io/api/v2/products/elastic-runtime/releases"
   ERT_TILE_FILE="$TMPDIR/cf-${PCF_VERSION}.pivotal"
 
+  EULA_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $PCF_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$PCF_VERSION\" ) ._links .eula_acceptance .href"`
+  EULA_ACCEPTED_AT=`curl -qsf -X POST -d "" -H "Authorization: Token $PIVNET_TOKEN" $EULA_URL | jq --raw-output '.accepted_at'`
+  echo "Accepted EULA for Cloud Foundry ERT at $EULA_ACCEPTED_AT"
+
   FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $PCF_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$PCF_VERSION\" ) ._links .product_files .href"`
   DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] | select( .name == "PCF Elastic Runtime" ) ._links .download .href'`
   DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
@@ -278,8 +282,11 @@ cloud_foundry () {
 
   echo "Staging Cloud Foundry ERT..."
   PCF_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"cf\" )"`
+  PRODUCT_NAME=`echo $PCF_PRODUCT | jq --raw-output ".name"`
+  AVAILABLE_VERSION=`echo $PCF_PRODUCT | jq --raw-output ".product_version"`
   curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -d "{\"name\": \"cf\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
+
   # grab the guid of the staged product to use it for later configuration
   PCF_GUID=`curl -qs --insecure "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output '.[] | select( .type == "cf" ) .guid'`
 
@@ -317,6 +324,10 @@ cloud_foundry () {
 mysql () {
   MYSQL_RELEASES_URL="https://network.pivotal.io/api/v2/products/p-mysql/releases"
   MYSQL_TILE_FILE="$TMPDIR/p-mysql-${MYSQL_VERSION}.pivotal"
+
+  EULA_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $PCF_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$PCF_VERSION\" ) ._links .eula_acceptance .href"`
+  EULA_ACCEPTED_AT=`curl -qsf -X POST -d "" -H "Authorization: Token $PIVNET_TOKEN" $EULA_URL | jq --raw-output '.accepted_at'`
+  echo "Accepted EULA for Cloud Foundry ERT at $EULA_ACCEPTED_AT"
 
   FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $MYSQL_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$MYSQL_VERSION\" ) ._links .product_files .href"`
   DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] ._links .download .href'`
