@@ -39,6 +39,9 @@ parse_args () {
           "gemfire")
             INSTALL_GEMFIRE=1
             ;;
+          "concourse")
+            INSTALL_CONCOURSE=1
+            ;;
           "default")
             set_defaults
             ;;
