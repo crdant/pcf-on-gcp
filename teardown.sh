@@ -36,7 +36,7 @@ setup () {
   gcloud auth login cdantonio@pivotal.io
   gcloud config set project ${PROJECT}
   gcloud config set compute/zone ${AVAILABILITY_ZONE_1}
-  gcloud config set compute/REGION_1 ${REGION_1}
+  gcloud config set compute/region ${REGION_1}
 }
 
 vms () {
