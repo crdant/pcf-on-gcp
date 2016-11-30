@@ -3,6 +3,12 @@
 # prepare to install PCF on GCP
 
 . lib/env.sh
+. lib/login_ops_manager.sh
+. lib/eula.sh
+. lib/download_product.sh
+. lib/upload_product.sh
+. lib/stage_product.sh
+. lib/product_guid.sh
 
 setup () {
   # make sure our API components up-to-date
@@ -65,7 +71,9 @@ ssl_certs () {
 
 load_balancers () {
   # setup the load balancers
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --description "Includes all VM instances that are managed as part of the PCF install."
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_1}."
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_2} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_2}."
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_3} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_3}."
 
   # SSH
   SSH_LOAD_BALANCER_NAME="pcf-ssh-${DOMAIN_TOKEN}"
@@ -78,7 +86,9 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" addresses create "${HTTP_LOAD_BALANCER_NAME}" --global
   gcloud compute --project "${PROJECT}" http-health-checks create "pcf-http-router-health-check-${DOMAIN_TOKEN}" --description "Health check for load balancing web access to PCF instances" --request-path "/health" --port="8080" --timeout "5s" --healthy-threshold "2" --unhealthy-threshold "2"
   gcloud compute --project "${PROJECT}" backend-services create "${HTTP_LOAD_BALANCER_NAME}" --description "Backend services for load balancing web access to PCF instances" --session-affinity "NONE"  --http-health-checks "pcf-http-router-health-check-${DOMAIN_TOKEN}"
-  gcloud compute --project "${PROJECT}" backend-services add-backend "${HTTP_LOAD_BALANCER_NAME}" --instance-group "pcf-instances-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --description "Backend to map HTTP load balancing to the appropriate instances"
+  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_1}."
+  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_2}."
+  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_3}."
   gcloud compute --project "${PROJECT}" url-maps create "${HTTP_LOAD_BALANCER_NAME}" --default-service "${HTTP_LOAD_BALANCER_NAME}" --description "URL Map for HTTP load balancer for access to PCF instances"
   gcloud compute --project "${PROJECT}" ssl-certificates create "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --certificate "${TMPDIR}/${DOMAIN_TOKEN}.crt"  --private-key "${TMPDIR}/${DOMAIN_TOKEN}.key"
   gcloud compute --project "${PROJECT}" target-http-proxies create "pcf-router-http-proxy-${DOMAIN_TOKEN}" --url-map  "${HTTP_LOAD_BALANCER_NAME}" --description "Backend services for load balancing HTTP access to PCF instances"
@@ -219,10 +229,11 @@ ops_manager () {
   curl --insecure "https://manager.${SUBDOMAIN}/api/v0/setup" -X POST \
       -H "Content-Type: application/json" -d @api-calls/setup.json
 
+  # log in to the ops_manager so the script can manipulate it later
+  login_ops_manager
+
   # prepare for downloading products from the Pivotal Network
-  uaac target "https://manager.${SUBDOMAIN}/uaa" --skip-ssl-validation
-  uaac token owner get opsman admin --secret='' --password="abscound-novena-shut-pierre"
-  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
+
   curl --insecure "https://manager.${SUBDOMAIN}/api/v0/settings/pivotal_network_settings" -X PUT \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
       -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
@@ -242,31 +253,13 @@ cloud_foundry () {
   PCF_RELEASES_URL="https://network.pivotal.io/api/v2/products/elastic-runtime/releases"
   ERT_TILE_FILE="$TMPDIR/cf-${PCF_VERSION}.pivotal"
 
-  EULA_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $PCF_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$PCF_VERSION\" ) ._links .eula_acceptance .href"`
-  EULA_ACCEPTED_AT=`curl -qsf -X POST -d "" -H "Authorization: Token $PIVNET_TOKEN" $EULA_URL | jq --raw-output '.accepted_at'`
-  echo "Accepted EULA for Cloud Foundry ERT at $EULA_ACCEPTED_AT"
-
-  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $PCF_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$PCF_VERSION\" ) ._links .product_files .href"`
-  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] | select( .name == "PCF Elastic Runtime" ) ._links .download .href'`
-  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
-
-  echo "Downloading Cloud Foundry ERT from $DOWNLOAD_URL..."
-  curl -qsf -o $ERT_TILE_FILE $DOWNLOAD_URL
-
-  echo "Uploading Cloud Foundry ERT to Operations Manager..."
-  UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -F "product[file]=@${ERT_TILE_FILE}"
-
-  echo "Staging Cloud Foundry ERT..."
-  PCF_PRODUCT=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"cf\" )"`
-  PRODUCT_NAME=`echo $PCF_PRODUCT | jq --raw-output ".name"`
-  AVAILABLE_VERSION=`echo $PCF_PRODUCT | jq --raw-output ".product_version"`
-  curl -qsf --insecure -X POST "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$PRODUCT_NAME\", \"product_version\": \"${AVAILABLE_VERSION}\"}"
-
-  # grab the guid of the staged product to use it for later configuration
-  PCF_GUID=`curl -qs --insecure "https://manager.${SUBDOMAIN}/api/v0/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output '.[] | select( .type == "cf" ) .guid'`
+  accept_eula "elastic-runtime" $PCF_VERSION "yes"
+  echo "Downloading Cloud Foundry Elastic Runtime..."
+  tile_file=`download_product "elastic-runtime" $PCF_VERSION`
+  echo "Uploading Cloud Foundry Elastic Runtime..."
+  PCF_GUID=`upload_product $tile_file`
+  echo "Staging Cloud Foundry Elastic Runtime..."
+  stage_product "cf"
 
   # set the load balancers resource configuration
   ROUTER_GUID=`curl -qs --insecure "https://manager.${SUBDOMAIN}/api/v0/staged/products/${PCF_GUID}/jobs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output '.jobs [] | select ( .name == "router" ) .guid'`
