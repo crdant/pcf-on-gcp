@@ -26,7 +26,7 @@ service_broker () {
 }
 
 cloud_foundry () {
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}"
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml" --quiet
   gcloud dns record-sets transaction remove -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99"
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
 }
@@ -46,7 +46,7 @@ blobstore () {
 ops_manager () {
   # remove from DNS
   OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}" | jq --raw-output ".address"`
-  gcloud dns record-sets transaction start -z ${DNS_ZONE}
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml" --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "manager.${SUBDOMAIN}" --ttl ${DNS_TTL} --type A ${OPS_MANAGER_ADDRESS}
   gcloud dns record-sets transaction execute -z ${DNS_ZONE}
 
@@ -98,7 +98,7 @@ load_balancers () {
 
 dns () {
   # clear out the records first so we can remove the zone (apparenlty it won't let me do it)
-  gcloud dns record-sets transaction start -z ${DNS_ZONE} --quiet
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml" --quiet
 
   # HTTP/S router
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${HTTP_LOAD_BALANCER_NAME}" --global  | jq --raw-output ".address"`

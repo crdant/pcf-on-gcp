@@ -102,7 +102,7 @@ dns () {
   echo "Waiting for ${DNS_TTL} seconds for the Root DNS to sync up..."
   sleep "${DNS_TTL}"
 
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}"
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
 
   # HTTP/S router
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${HTTP_LOAD_BALANCER_NAME}" --global  | jq --raw-output ".address"`
@@ -154,7 +154,7 @@ ops_manager () {
   # make sure we can get to it
   gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"
   OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}"
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "manager.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A ${OPS_MANAGER_ADDRESS}
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}"
 
