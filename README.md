@@ -35,7 +35,8 @@ $ prepare.sh
 
 In between the two steps, there you need to go into the Ops Manager UI and configure the Google Cloud Platform tile. This will start the BOSH
 director in your environment.  There are some steps there that are not easily done via the Ops Manager APIs, though I have some ideas and may
-be able to do some additional automation there.
+be able to do some additional automation there. **NOTE: When you run the install script you will be accepting the EULA(s) for the product(s)
+you are installing. I strongly recommend you review them first.**
 
 ```
 $ install.sh
