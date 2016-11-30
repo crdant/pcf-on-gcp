@@ -4,7 +4,8 @@
 download_product () {
   product=$1
   version=$2
-
+  version_token=`echo ${version} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
+  numeric_version=`echo ${version} | sed 's/[^0-9.]*//g'`
   releases_url="https://network.pivotal.io/api/v2/products/${product}/releases"
   tile_file="$TMPDIR/${product}-${version}.pivotal"
 
