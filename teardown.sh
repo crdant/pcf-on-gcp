@@ -18,10 +18,6 @@ vms () {
 }
 
 service_broker () {
-  # drop service broker database and supporting account
-  GCP_VERSION_TOKEN=`echo ${GCP_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
-  GCP_VERSION_NUM=`echo ${GCP_VERSION} | sed 's/[^0-9.]*//g'`
-
   gcloud sql --project=${PROJECT} instances delete "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --quiet
   gcloud iam service-accounts delete service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 }
