@@ -2,7 +2,6 @@
 #    outputs the pathname of the downloaded file
 
 download_product () {
-  set -o xtrace
   product=$1
   version=$2
   version_token=`echo ${version} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
