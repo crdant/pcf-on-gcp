@@ -29,7 +29,7 @@ network () {
 security () {
   # create a service account and give it a key (parameterize later), not sure why it doesn't have a project specified but that seems right
   gcloud iam service-accounts create bosh-opsman-${DOMAIN_TOKEN} --display-name bosh
-  gcloud iam service-accounts keys create "${TMPDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com
+  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/editor"
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/compute.instanceAdmin"
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/compute.networkAdmin"
@@ -192,16 +192,16 @@ cloud_foundry () {
 service_broker () {
   # prepare for the google service broker
   gcloud iam service-accounts create "service-broker-${DOMAIN_TOKEN}" --display-name bosh
-  gcloud iam service-accounts keys create "${TMPDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json" --iam-account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com
+  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json" --iam-account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner"
   gcloud sql --project="${PROJECT}" instances create "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --assign-ip --require-ssl --authorized-networks="${ALL_INTERNET}" --region=${REGION_1}  --gce-zone=${AVAILABILITY_ZONE_1}
   gcloud sql --project="${PROJECT}" instances set-root-password "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --password="crest-tory-hump-anode"
   # server connection requirements
-  gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output '.serverCaCert .cert ' > "keys/gcp-service-broker-db-server.crt"
+  gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output '.serverCaCert .cert ' > "${KEYDIR}/gcp-service-broker-db-server.crt"
   gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > "${TMPDIR}/gcp-service-broker-db.ip"
   # client connection requirements
-  gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" "keys/gcp-service-broker-db-client.key" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
-  gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .cert ' > "keys/gcp-service-broker-db-client.crt"
+  gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" "${KEYDIR}/gcp-service-broker-db-client.key" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
+  gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .cert ' > "${KEYDIR}/gcp-service-broker-db-client.crt"
   # setup a user
   gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "arachnid-souvenir-brunch" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
 
