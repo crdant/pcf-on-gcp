@@ -136,7 +136,7 @@ cloud_foundry () {
   echo "Downloading Cloud Foundry Elastic Runtime..."
   tile_file=`download_product "elastic-runtime" $PCF_VERSION`
   echo "Uploading Cloud Foundry Elastic Runtime..."
-  upload_product $TILE_FILE
+  upload_product $tile_file
   echo "Staging Cloud Foundry Elastic Runtime..."
   stage_product "cf"
   PCF_GUID=`product_guid "cf"`
