@@ -10,6 +10,8 @@ BASEDIR=`dirname $0`
 
 network () {
   # create a network (parameterize the network name and project later)
+  echo "Creating network, subnet, and firewall rules..."
+
   gcloud compute --project "${PROJECT}" networks create "pcf-${DOMAIN_TOKEN}" --description "Network for ${DOMAIN} Cloud Foundry installation. Creating with a single subnet." --mode "custom"
 
   # create a single subnet in us-east1 (parameterize REGION_1 and names later)
@@ -24,11 +26,13 @@ network () {
   # create additional firewall rules that are not in the documentation but seem to be necessary based on my experiments
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-bosh-${DOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access from internal sources to the BOSH director" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "bosh"
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-cloud-controller-${DOMAIN_TOKEN}" --allow "tcp:80,tcp:443" --description "Allow web access from internal sources to the cloud controller" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "cloud-controller"
-  echo "Google Network for BOSH Director: pcf-${DOMAIN_TOKEN}/pcf-${REGION_1}-${DOMAIN_TOKEN}/${REGION_1}"
 
+  echo "Google Network for BOSH Director: pcf-${DOMAIN_TOKEN}/pcf-${REGION_1}-${DOMAIN_TOKEN}/${REGION_1}"
 }
 
 security () {
+  echo "Creating services accounts and SSH keys..."
+
   # create a service account and give it a key (parameterize later), not sure why it doesn't have a project specified but that seems right
   gcloud iam service-accounts create bosh-opsman-${DOMAIN_TOKEN} --display-name bosh
   gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com
@@ -42,9 +46,13 @@ security () {
   sed -i.gcp '1s/^/vcap: /' ${KEYDIR}/vcap-key.pub
   gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file sshKeys=${KEYDIR}/vcap-key.pub
   mv ${KEYDIR}/vcap-key.pub.gcp ${KEYDIR}/vcap-key.pub
+
+  echo "Service account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com and added SSH key to project (private key file: ${KEYDIR}/vcap-key)..."
 }
 
 ssl_certs () {
+  echo "Creating SSL certificate for load balancers..."
+
   COMMON_NAME="*.${SUBDOMAIN}"
   COUNTRY="US"
   STATE="MA"
@@ -56,6 +64,8 @@ ssl_certs () {
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
   openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout ${TMPDIR}/${DOMAIN_TOKEN}.key -out ${TMPDIR}/${DOMAIN_TOKEN}.crt -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n"))
+
+  echo "SSL certificate created and stored at ${TMPDIR}/${DOMAIN_TOKEN}.crt..."
 }
 
 load_balancers () {
