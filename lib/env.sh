@@ -22,7 +22,7 @@ env () {
   REDIS_VERSION="1.6.2"
   SCS_VERSION="1.3.0"
   GCP_VERSION="2.0.1 (BETA)"
-  GCP_VERSION_TOKEN=`echo ${GCP_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
+  GCP_VERSION_TOKEN=`echo ${GCP_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '(' | tr '[:upper:]' '[:lower:]'`
   GCP_VERSION_NUM=`echo ${GCP_VERSION} | sed 's/[^0-9.]*//g'`
   GEM_VERSION="1.6.3"
   CONCOURSE_VERSION="1.0.0-edge.3"
