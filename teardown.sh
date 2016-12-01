@@ -147,7 +147,10 @@ network () {
   gcloud compute --project "${PROJECT}" networks delete "pcf-${DOMAIN_TOKEN}" --quiet
 }
 
+START_TIMESTAMP=`date`
+START_SECONDS=`date +%s`
 env
+echo "Started tearing down Cloud Foundry installation in Google Cloud Platform project ${PROJECT} at ${START_TIMESTAMP}..."
 setup
 vms
 products
@@ -157,3 +160,7 @@ dns
 load_balancers
 security
 network
+END_TIMESTAMP=`date`
+END_SECONDS=`date +%s`
+ELAPSED_TIME=`echo $((END-START)) | awk '{print int($1/60)":"int($1%60)}'`
+echo "Started tearing down Cloud Foundry installation in Google Cloud Platform project ${PROJECT} at ${END_TIMESTAMP} (elapsed time ${ELAPSED_TIME})."

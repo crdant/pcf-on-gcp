@@ -229,8 +229,15 @@ concourse () {
   CONCOURSE_GUID=`product_guid "p-concourse"`
 }
 
+START_TIMESTAMP=`date`
+START_SECONDS=`date +%s`
 parse_args $@
 env
+echo "Started installing Cloud Foundry components in Google Cloud Platform project ${PROJECT} at ${START_TIMESTAMP}..."
 setup
 login_ops_manager
 products
+END_TIMESTAMP=`date`
+END_SECONDS=`date +%s`
+ELAPSED_TIME=`echo $((END-START)) | awk '{print int($1/60)":"int($1%60)}'`
+echo "Completed installing Cloud Foundry components in Google Cloud Platform project ${PROJECT} at ${END_TIMESTAMP} (elapsed time ${ELAPSED_TIME})."
