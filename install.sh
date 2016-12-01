@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # install PCF and related products
 
-. lib/env.sh
-. personal.sh
-. lib/setup.sh
-. lib/login_ops_manager.sh
-. lib/eula.sh
-. lib/download_product.sh
-. lib/upload_product.sh
-. lib/stage_product.sh
-. lib/product_guid.sh
+. "${BASEDIR}/lib/env.sh"
+. "${BASEDIR}/personal.sh"
+. "${BASEDIR}/lib/setup.sh"
+. "${BASEDIR}/lib/login_ops_manager.sh"
+. "${BASEDIR}/lib/eula.sh"
+. "${BASEDIR}/lib/download_product.sh"
+. "${BASEDIR}/lib/upload_product.sh"
+. "${BASEDIR}/lib/stage_product.sh"
+. "${BASEDIR}/lib/product_guid.sh"
 
 parse_args () {
   if [ $# -eq 0 ] ; then

@@ -2,11 +2,11 @@
 # currently handles only the resources that prepare.sh creates, and will fail due to dependencies if resources
 # created by OpsManager (or otherwise) that depend on these prerequisites still exist
 
-. lib/env.sh
-. lib/customization_hooks.sh
-. personal.sh
+. "${BASEDIR}/lib/env.sh"
+. "${BASEDIR}/lib/customization_hooks.sh"
+. "${BASEDIR}/personal.sh"
 
-. lib/setup.sh
+. "${BASEDIR}/lib/setup.sh"
 
 vms () {
   # pause all bosh managed VMs

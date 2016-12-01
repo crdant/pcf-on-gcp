@@ -1,6 +1,8 @@
 # make the environment for these scripts available in your current shell
 
-. lib/env.sh
+BASEDIR=`dirname $0`
+. "${BASEDIR}/lib/env.sh"
+. "${BASEDIR}/personal.sh"
 
 env
 
