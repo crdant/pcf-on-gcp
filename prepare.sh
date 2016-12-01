@@ -10,7 +10,7 @@ BASEDIR=`dirname $0`
 
 network () {
   # create a network (parameterize the network name and project later)
-  gcloud compute --project "${PROJECT}" networks create "pcf-${DOMAIN_TOKEN}" --description "Network for crdant.io Cloud Foundry installation. Creating with a single subnet." --mode "custom"
+  gcloud compute --project "${PROJECT}" networks create "pcf-${DOMAIN_TOKEN}" --description "Network for ${DOMAIN} Cloud Foundry installation. Creating with a single subnet." --mode "custom"
 
   # create a single subnet in us-east1 (parameterize REGION_1 and names later)
   gcloud compute --project "${PROJECT}" networks subnets create "pcf-${REGION_1}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --region "${REGION_1}" --range ${CIDR}
@@ -24,6 +24,8 @@ network () {
   # create additional firewall rules that are not in the documentation but seem to be necessary based on my experiments
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-bosh-${DOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access from internal sources to the BOSH director" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "bosh"
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-cloud-controller-${DOMAIN_TOKEN}" --allow "tcp:80,tcp:443" --description "Allow web access from internal sources to the cloud controller" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "cloud-controller"
+  echo "Google Network for BOSH Director: pcf-${DOMAIN_TOKEN}/pcf-${REGION_1}-${DOMAIN_TOKEN}/${REGION_1}"
+
 }
 
 security () {
@@ -47,9 +49,9 @@ ssl_certs () {
   COUNTRY="US"
   STATE="MA"
   CITY="Cambridge"
-  ORGANIZATION="crdant.io"
+  ORGANIZATION="${DOMAIN}"
   ORG_UNIT="Cloud"
-  EMAIL="cdantonio@pivotal.io"
+  EMAIL="${ACCOUNT}"
   ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.system.${SUBDOMAIN},DNS:*.pcf.${SUBDOMAIN},DNS:*.apps.${SUBDOMAIN},DNS:*.login.system.${SUBDOMAIN},DNS:*.uaa.system.${SUBDOMAIN}"
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
@@ -184,7 +186,7 @@ ops_manager () {
 
 cloud_foundry () {
   # provide the necessary DNS records for the internal MySQL database
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transations-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 }
@@ -207,12 +209,12 @@ service_broker () {
 
   # setup a database for the servicebroker
   GCP_AUTH_TOKEN=`gcloud auth application-default print-access-token`
-  curl -q -X POST "https://www.googleapis.com/sql/v1beta4/projects/fe-cdantonio/instances/gcp-service-broker-2-0-1-crdant-io/databases" \
-    -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d '{ "instance": "gcp-service-broker-2-0-1-crdant-io", "name": "servicebroker", "project": "fe-cdantonio" }'
+  curl -q -X POST "https://www.googleapis.com/sql/v1beta4/projects/${PROJECT}/instances/gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}/databases" \
+    -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d "{ \"instance\": \"gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}\", \"name\": \"servicebroker\", \"project\": \"${PROJECT}\" }"
 
   # setup a database and add permissions for the servicebroker user
-  mysql -uroot -pcrest-tory-hump-anode -h `cat "${TMPDIR}/gcp-service-broker-db.ip"` --ssl-ca=gcp-service-broker-db-server.crt \
-    --ssl-cert=gcp-service-broker-db-client.crt --ssl-key=gcp-service-broker-db-client.key <<SQL
+  mysql -uroot -pcrest-tory-hump-anode -h `cat "${TMPDIR}/gcp-service-broker-db.ip"` --ssl-ca="${KEYDIR}/gcp-service-broker-db-server.crt" \
+    --ssl-cert="${KEYDIR}/gcp-service-broker-db-client.crt" --ssl-key="${KEYDIR}/gcp-service-broker-db-client.key" <<SQL
   GRANT ALL PRIVILEGES ON servicebroker.* TO 'pcf'@'%' WITH GRANT OPTION;
 SQL
 }
