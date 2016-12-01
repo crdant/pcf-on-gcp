@@ -121,9 +121,6 @@ products () {
 }
 
 cloud_foundry () {
-  PCF_RELEASES_URL="https://network.pivotal.io/api/v2/products/elastic-runtime/releases"
-  ERT_TILE_FILE="$TMPDIR/cf-${PCF_VERSION}.pivotal"
-
   accept_eula "elastic-runtime" $PCF_VERSION "yes"
   echo "Downloading Cloud Foundry Elastic Runtime..."
   tile_file=`download_product "elastic-runtime" $PCF_VERSION`
