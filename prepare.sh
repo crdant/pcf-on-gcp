@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # prepare to install PCF on GCP
 
-. lib/env.sh
-. lib/customization_hooks.sh
-. personal.sh
-. lib/setup.sh
-. lib/login_ops_manager.sh
+BASEDIR=`dirname $0`
+. "${BASEDIR}/lib/env.sh"
+. "${BASEDIR}/lib/customization_hooks.sh"
+. "${BASEDIR}/personal.sh"
+. "${BASEDIR}/lib/setup.sh"
+. "${BASEDIR}/lib/login_ops_manager.sh"
 
 network () {
   # create a network (parameterize the network name and project later)
