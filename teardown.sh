@@ -23,9 +23,9 @@ service_broker () {
 }
 
 cloud_foundry () {
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml" --quiet
-  gcloud dns record-sets transaction remove -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --quiet
+  gcloud dns record-sets transaction remove -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 }
 
 products () {
@@ -44,9 +44,9 @@ blobstore () {
 ops_manager () {
   # remove from DNS
   OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}" | jq --raw-output ".address"`
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml" --quiet
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "manager.${SUBDOMAIN}" --ttl ${DNS_TTL} --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction execute -z ${DNS_ZONE} --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --quiet
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "manager.${SUBDOMAIN}" --ttl ${DNS_TTL} --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction execute -z ${DNS_ZONE} --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # release public IP
   gcloud compute --project "${PROJECT}" addresses delete "pcf-ops-manager-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
@@ -96,28 +96,28 @@ load_balancers () {
 
 dns () {
   # clear out the records first so we can remove the zone (apparenlty it won't let me do it)
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml" --quiet
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --quiet
 
   # HTTP/S router
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${HTTP_LOAD_BALANCER_NAME}" --global  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.apps.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.pcf.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.system.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.apps.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.pcf.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.system.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # ssh router
   SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${SSH_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "ssh.pcf.${SUBDOMAIN}" --ttl 300 --type A ${SSH_ADDRESS} --quiet --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "ssh.pcf.${SUBDOMAIN}" --ttl 300 --type A ${SSH_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # websockets router
   WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "doppler.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "loggregator.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "doppler.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "loggregator.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # tcp router
   TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "tcp.${SUBDOMAIN}" --ttl 300 --type A ${TCP_ADDRESS} --quiet --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "tcp.${SUBDOMAIN}" --ttl 300 --type A ${TCP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
-  gcloud dns record-sets transaction execute -z ${DNS_ZONE} --quiet --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction execute -z ${DNS_ZONE} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   gcloud dns managed-zones delete ${DNS_ZONE} --quiet
 }
@@ -162,5 +162,5 @@ security
 network
 END_TIMESTAMP=`date`
 END_SECONDS=`date +%s`
-ELAPSED_TIME=`echo $((END-START)) | awk '{print int($1/60)":"int($1%60)}'`
+ELAPSED_TIME=`echo $((END_SECONDS-START_SECONDS)) | awk '{print int($1/60)":"int($1%60)}'`
 echo "Started tearing down Cloud Foundry installation in Google Cloud Platform project ${PROJECT} at ${END_TIMESTAMP} (elapsed time ${ELAPSED_TIME})."

@@ -103,28 +103,28 @@ dns () {
   echo "Waiting for ${DNS_TTL} seconds for the Root DNS to sync up..."
   sleep "${DNS_TTL}"
 
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # HTTP/S router
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${HTTP_LOAD_BALANCER_NAME}" --global  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.apps.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.apps.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # ssh router
   SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${SSH_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "ssh.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${SSH_ADDRESS}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "ssh.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${SSH_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # websockets router
   WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "doppler.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "loggregator.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "doppler.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "loggregator.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # tcp router
   TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "tcp.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${TCP_ADDRESS}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "tcp.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${TCP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
-  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 }
 
 blobstore () {
@@ -155,9 +155,9 @@ ops_manager () {
   # make sure we can get to it
   gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"
   OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "manager.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "manager.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com="https://www.googleapis.com/auth/cloud-platform" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager"
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/ubuntu-key -b 4096 -C ubuntu@local
@@ -185,8 +185,8 @@ ops_manager () {
 cloud_foundry () {
   # provide the necessary DNS records for the internal MySQL database
   gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transations-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 }
 
 service_broker () {
@@ -233,5 +233,5 @@ cloud_foundry
 service_broker
 END_TIMESTAMP=`date`
 END_SECONDS=`date +%s`
-ELAPSED_TIME=`echo $((END-START)) | awk '{print int($1/60)":"int($1%60)}'`
+ELAPSED_TIME=`echo $((END_SECONDS-START_SECONDS)) | awk '{print int($1/60)":"int($1%60)}'`
 echo "Completed preparing Google Cloud Platform project ${PROJECT} to install Cloud Foundry at ${END_TIMESTAMP} (elapsed time ${ELAPSED_TIME})."
