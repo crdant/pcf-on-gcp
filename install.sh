@@ -151,11 +151,6 @@ cloud_foundry () {
   curl -qs --insecure -X PUT "https://manager.${SUBDOMAIN}/api/v0/staged/products/${PCF_GUID}/jobs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
     -H "Content-Type: application/json" -d `echo $BRAIN_RESOURCES | jq ".elb_names = $BRAIN_LBS"`
 
-  # provide the necessary DNS records for the internal MySQL database
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transations-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
-
 }
 
 mysql () {

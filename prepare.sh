@@ -181,6 +181,13 @@ ops_manager () {
       -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
 }
 
+cloud_foundry () {
+  # provide the necessary DNS records for the internal MySQL database
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transations-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/transaction-${DNS_ZONE}.xml"
+}
+
 service_broker () {
   # prepare for the google service broker
   gcloud iam service-accounts create "service-broker-${DOMAIN_TOKEN}" --display-name bosh
@@ -190,7 +197,7 @@ service_broker () {
   gcloud sql --project="${PROJECT}" instances set-root-password "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --password="crest-tory-hump-anode"
   # server connection requirements
   gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output '.serverCaCert .cert ' > gcp-service-broker-db-server.crt
-  gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > gcp-service-broker-db.ip
+  gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > "${TMPDIR}/gcp-service-broker-db.ip"
   # client connection requirements
   gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" gcp-service-broker-db-client.key --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
   gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .cert ' > gcp-service-broker-db-client.crt
@@ -203,7 +210,7 @@ service_broker () {
     -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d '{ "instance": "gcp-service-broker-2-0-1-crdant-io", "name": "servicebroker", "project": "fe-cdantonio" }'
 
   # setup a database and add permissions for the servicebroker user
-  mysql -uroot -pcrest-tory-hump-anode -h `cat gcp-service-broker-db.ip` --ssl-ca=gcp-service-broker-db-server.crt \
+  mysql -uroot -pcrest-tory-hump-anode -h `cat "${TMPDIR}/gcp-service-broker-db.ip"` --ssl-ca=gcp-service-broker-db-server.crt \
     --ssl-cert=gcp-service-broker-db-client.crt --ssl-key=gcp-service-broker-db-client.key <<SQL
   GRANT ALL PRIVILEGES ON servicebroker.* TO 'pcf'@'%' WITH GRANT OPTION;
 SQL
@@ -218,4 +225,5 @@ load_balancers
 dns
 blobstore
 ops_manager
+cloud_foundry
 service_broker

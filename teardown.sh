@@ -32,6 +32,7 @@ cloud_foundry () {
 }
 
 products () {
+  service_broker
   cloud_foundry
 }
 
