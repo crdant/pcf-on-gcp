@@ -12,6 +12,17 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/stage_product.sh"
 . "${BASEDIR}/lib/product_guid.sh"
 
+init () {
+  INSTALL_PCF=0
+  INSTALL_MYSQL=0
+  INSTALL_RABBIT=0
+  INSTALL_REDIS=0
+  INSTALL_SCS=0
+  INSTALL_GCP=0
+  INSTALL_GEMFIRE=0
+  INSTALL_CONCOURSE=0
+}
+
 parse_args () {
   if [ $# -eq 0 ] ; then
     set_defaults
@@ -231,6 +242,7 @@ concourse () {
 
 START_TIMESTAMP=`date`
 START_SECONDS=`date +%s`
+init
 parse_args $@
 env
 echo "Started installing Cloud Foundry components in Google Cloud Platform project ${PROJECT} at ${START_TIMESTAMP}..."
@@ -239,5 +251,5 @@ login_ops_manager
 products
 END_TIMESTAMP=`date`
 END_SECONDS=`date +%s`
-ELAPSED_TIME=`echo $((END-START)) | awk '{print int($1/60)":"int($1%60)}'`
+ELAPSED_TIME=`echo $((END_SECONDS-START_SECONDS)) | awk '{print int($1/60)":"int($1%60)}'`
 echo "Completed installing Cloud Foundry components in Google Cloud Platform project ${PROJECT} at ${END_TIMESTAMP} (elapsed time ${ELAPSED_TIME})."
