@@ -11,7 +11,7 @@ env () {
   SUBDOMAIN="gcp.${DOMAIN}"
   DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
   DNS_TTL=300
-  CIDR="10.1.0.0/20"
+  CIDR="10.0.0.0/20"
   ALL_INTERNET="0.0.0.0/0"
 
   OPS_MANAGER_VERSION="1.8.10"
