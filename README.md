@@ -4,16 +4,22 @@
 
   1. The GCP command-line tool `gcloud` ([get it here](https://cloud.google.com/sdk/))
   2. `jq` for parsing JSON outputs ([installation options](https://stedolan.github.io/jq/download/))
+  3. GNU gettext for doing substitution of environment variables in files (should be in your package manager, or [follow GNU project instructions](https://www.gnu.org/software/software.html#HowToGetSoftware))
   3. A [Pivotal Network](https://network.pivotal.io) account and API token.
 
 ## Inputs
 
-Add a file named `personal.sh` to include your Google account, Google project, and domain:
+Add a file named `personal.sh` to include your Google account, Google project, and domain, along with some passwords:
 
 ```
 ACCOUNT="your-account@your-domain-or-gmail.com"
 PROJECT="your-project"
 DOMAIN="domain-for-your-pcf-install.tld"
+
+ADMIN_PASSWORD="password for ops manager/UAA admin"
+DECRYPTION_PASSPHRASE="decryption passphrase for ops manager"
+DB_ROOT_PASSWORD="root password for service broker database"
+DB_USER_PASSWORD="user password for service broker database"
 ```
 
 You can add other variables there to override the variables in `lib/env.sh`. Some of those will move into commandline arguments soon,

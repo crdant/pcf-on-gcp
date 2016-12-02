@@ -1,11 +1,11 @@
 {
   "setup": {
-    "decryption_passphrase": "tarn-sough-mote-emerge",
-    "decryption_passphrase_confirmation":"tarn-sough-mote-emerge",
+    "decryption_passphrase": "${DECRYPTION_PASSPHRASE}",
+    "decryption_passphrase_confirmation":"${DECRYPTION_PASSPHRASE}",
     "eula_accepted": "true",
     "identity_provider": "internal",
     "admin_user_name": "admin",
-    "admin_password": "abscound-novena-shut-pierre",
-    "admin_password_confirmation": "abscound-novena-shut-pierre"
+    "admin_password": "${ADMIN_PASSWORD}",
+    "admin_password_confirmation": "${ADMIN_PASSWORD}"
   }
 }

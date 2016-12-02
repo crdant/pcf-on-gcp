@@ -181,8 +181,8 @@ ops_manager () {
   sleep 60
 
   # now let's get ops manager going
-  curl --insecure "https://manager.${SUBDOMAIN}/api/v0/setup" -X POST \
-      -H "Content-Type: application/json" -d @api-calls/setup.json
+  SETUP_JSON=`envsubst < api-calls/setup.json`
+  curl --insecure "https://manager.${SUBDOMAIN}/api/v0/setup" -X POST -H "Content-Type: application/json" -d $SETUP_JSON
 
   # log in to the ops_manager so the script can manipulate it later
   login_ops_manager
@@ -207,7 +207,7 @@ service_broker () {
   gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json" --iam-account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner"
   gcloud sql --project="${PROJECT}" instances create "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --assign-ip --require-ssl --authorized-networks="${ALL_INTERNET}" --region=${REGION_1}  --gce-zone=${AVAILABILITY_ZONE_1}
-  gcloud sql --project="${PROJECT}" instances set-root-password "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --password="crest-tory-hump-anode"
+  gcloud sql --project="${PROJECT}" instances set-root-password "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --password="${DB_ROOT_PASSWORD}"
   # server connection requirements
   gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output '.serverCaCert .cert ' > "${KEYDIR}/gcp-service-broker-db-server.crt"
   gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > "${TMPDIR}/gcp-service-broker-db.ip"
@@ -215,7 +215,7 @@ service_broker () {
   gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" "${KEYDIR}/gcp-service-broker-db-client.key" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
   gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .cert ' > "${KEYDIR}/gcp-service-broker-db-client.crt"
   # setup a user
-  gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "arachnid-souvenir-brunch" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
+  gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "${DB_USER_PASSWORD}" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}"
 
   # setup a database for the servicebroker
   GCP_AUTH_TOKEN=`gcloud auth application-default print-access-token`
@@ -223,7 +223,7 @@ service_broker () {
     -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d "{ \"instance\": \"gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}\", \"name\": \"servicebroker\", \"project\": \"${PROJECT}\" }"
 
   # setup a database and add permissions for the servicebroker user
-  mysql -uroot -pcrest-tory-hump-anode -h `cat "${TMPDIR}/gcp-service-broker-db.ip"` --ssl-ca="${KEYDIR}/gcp-service-broker-db-server.crt" \
+  mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat "${TMPDIR}/gcp-service-broker-db.ip"` --ssl-ca="${KEYDIR}/gcp-service-broker-db-server.crt" \
     --ssl-cert="${KEYDIR}/gcp-service-broker-db-client.crt" --ssl-key="${KEYDIR}/gcp-service-broker-db-client.key" <<SQL
   GRANT ALL PRIVILEGES ON servicebroker.* TO 'pcf'@'%' WITH GRANT OPTION;
 SQL
