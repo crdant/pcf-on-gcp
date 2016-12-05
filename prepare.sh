@@ -60,7 +60,7 @@ ssl_certs () {
   ORGANIZATION="${DOMAIN}"
   ORG_UNIT="Cloud"
   EMAIL="${ACCOUNT}"
-  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.system.${SUBDOMAIN},DNS:*.pcf.${SUBDOMAIN},DNS:*.apps.${SUBDOMAIN},DNS:*.login.system.${SUBDOMAIN},DNS:*.uaa.system.${SUBDOMAIN}"
+  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.pcf.${SUBDOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
   openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout ${TMPDIR}/${DOMAIN_TOKEN}.key -out ${TMPDIR}/${DOMAIN_TOKEN}.crt -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n"))
@@ -119,18 +119,18 @@ dns () {
 
   # HTTP/S router
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${HTTP_LOAD_BALANCER_NAME}" --global  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.apps.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.${PCF_APPS_DOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.pcf.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # ssh router
   SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${SSH_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "ssh.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${SSH_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "ssh.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${SSH_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # websockets router
   WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "doppler.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "loggregator.system.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "doppler.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "loggregator.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # tcp router
   TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`

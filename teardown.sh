@@ -100,9 +100,9 @@ dns () {
 
   # HTTP/S router
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${HTTP_LOAD_BALANCER_NAME}" --global  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.apps.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.${PCF_APPS_DOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.pcf.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.system.${SUBDOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "*.${PCF_SYSTEM_DOMAIN}" --ttl 300 --type A ${HTTP_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # ssh router
   SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${SSH_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
@@ -110,8 +110,8 @@ dns () {
 
   # websockets router
   WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "doppler.system.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "loggregator.system.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "doppler.${PCF_SYSTEM_DOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "loggregator.${PCF_SYSTEM_DOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # tcp router
   TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
