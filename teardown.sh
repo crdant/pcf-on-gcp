@@ -110,8 +110,8 @@ dns () {
 
   # websockets router
   WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "doppler.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "loggregator.pcf.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "doppler.system.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "loggregator.system.${SUBDOMAIN}" --ttl 300 --type A ${WS_ADDRESS} --quiet --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # tcp router
   TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --region ${REGION_1}  | jq --raw-output ".address"`
