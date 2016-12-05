@@ -182,14 +182,14 @@ ops_manager () {
 
   # now let's get ops manager going
   SETUP_JSON=`envsubst < api-calls/setup.json`
-  curl --insecure "https://manager.${SUBDOMAIN}/api/v0/setup" -X POST -H "Content-Type: application/json" -d $SETUP_JSON
+  curl --insecure "${OPS_MANAGER_API_ENDPOINT}/setup" -X POST -H "Content-Type: application/json" -d $SETUP_JSON
 
   # log in to the ops_manager so the script can manipulate it later
   login_ops_manager
 
   # prepare for downloading products from the Pivotal Network
 
-  curl --insecure "https://manager.${SUBDOMAIN}/api/v0/settings/pivotal_network_settings" -X PUT \
+  curl --insecure "${OPS_MANAGER_API_ENDPOINT}/settings/pivotal_network_settings" -X PUT \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
       -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
 }
