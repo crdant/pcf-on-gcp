@@ -20,6 +20,9 @@ ADMIN_PASSWORD="password for ops manager/UAA admin"
 DECRYPTION_PASSPHRASE="decryption passphrase for ops manager"
 DB_ROOT_PASSWORD="root password for service broker database"
 DB_USER_PASSWORD="user password for service broker database"
+
+GCP_ACCESS_KEY_ID="Google storage interoperability access key id"
+GCP_SECRET_ACCESS_KEY="Google storage interoperability secret access key"
 ```
 
 You can add other variables there to override the variables in `lib/env.sh`. Some of those will move into commandline arguments soon,

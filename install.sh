@@ -141,6 +141,10 @@ cloud_foundry () {
   stage_product "cf"
   PCF_GUID=`product_guid "cf"`
 
+  # configure BLOB storage locations
+  PROPERTIES_JSON=`envsubst < api-calls/elastic_runtime_blobstore_properties.json`
+  set_properties "cf" "${PROPERTIES_JSON}"
+
   # set the load balancers resource configuration
   ROUTER_GUID=`job_guid cf router`
   ROUTER_RESOURCES=`curl -qs --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${ROUTER_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"`

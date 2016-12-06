@@ -47,7 +47,7 @@ security () {
   gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file sshKeys=${KEYDIR}/vcap-key.pub --no-user-output-enabled
   mv ${KEYDIR}/vcap-key.pub.gcp ${KEYDIR}/vcap-key.pub
 
-  echo "Service account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com and added SSH key to project (private key file: ${KEYDIR}/vcap-key)..."
+  echo "Created service account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com and added SSH key to project (private key file: ${KEYDIR}/vcap-key)..."
 }
 
 ssl_certs () {
@@ -158,20 +158,20 @@ dns () {
 blobstore () {
   # create storage buckets for ERT file storage -- uncertain permissions are needed
   echo "Creating storage buckets for storing BLOBs..."
-  gsutil mb -l ${STORAGE_LOCATION} gs://buildpacks-pcf-${DOMAIN_TOKEN}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://buildpacks-pcf-${DOMAIN_TOKEN}
-  gsutil mb -l ${STORAGE_LOCATION} gs://droplets-pcf-${DOMAIN_TOKEN}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://droplets-pcf-${DOMAIN_TOKEN}
-  gsutil mb -l ${STORAGE_LOCATION} gs://packages-pcf-${DOMAIN_TOKEN}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://packages-pcf-${DOMAIN_TOKEN}
-  gsutil mb -l ${STORAGE_LOCATION} gs://resources-pcf-${DOMAIN_TOKEN}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://resources-pcf-${DOMAIN_TOKEN}
-  echo "Created storage buckets for storing BLOBs."
-  echo "You will need the following values to configure the PCF tile in Operations Managers"
-  echo "  Buildpack storage: buildpacks-pcf-${DOMAIN_TOKEN}"
-  echo "  Droplet storage: droplets-pcf-${DOMAIN_TOKEN}"
-  echo "  Package storage: packages-pcf-${DOMAIN_TOKEN}"
-  echo "  Resource storage: resources-pcf-${DOMAIN_TOKEN}"
+  gsutil mb -l ${STORAGE_LOCATION} gs://${BUILDPACKS_STORAGE_BUCKET}
+  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://${BUILDPACKS_STORAGE_BUCKET}
+  gsutil mb -l ${STORAGE_LOCATION} gs://${DROPLETS_STORAGE_BUCKET}
+  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://${DROPLETS_STORAGE_BUCKET}
+  gsutil mb -l ${STORAGE_LOCATION} gs://${PACKAGES_STORAGE_BUCKET}
+  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://${PACKAGES_STORAGE_BUCKET}
+  gsutil mb -l ${STORAGE_LOCATION} gs://${RESOURCES_STORAGE_BUCKET}
+  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://${RESOURCES_STORAGE_BUCKET}
+  echo "Created storage buckets for storing elastic runtime BLOBs."
+  echo "You will need the following values to configure the PCF tile in Operations Manager"
+  echo "  Buildpack storage: ${BUILDPACKS_STORAGE_BUCKET}"
+  echo "  Droplet storage: ${DROPLETS_STORAGE_BUCKET}"
+  echo "  Package storage: ${PACKAGES_STORAGE_BUCKET}"
+  echo "  Resource storage: ${RESOURCES_STORAGE_BUCKET}"
 }
 
 ops_manager () {
