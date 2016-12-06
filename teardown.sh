@@ -18,7 +18,7 @@ vms () {
 }
 
 service_broker () {
-  gcloud sql --project=${PROJECT} instances delete "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --quiet
+  gcloud sql --project="${PROJECT}" instances delete "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --quiet
   gcloud iam service-accounts delete service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 }
 
@@ -45,7 +45,7 @@ ops_manager () {
   # remove from DNS
   OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}" | jq --raw-output ".address"`
   gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --quiet
-  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "manager.${SUBDOMAIN}" --ttl ${DNS_TTL} --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
+  gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "${OPS_MANAGER_FQDN}" --ttl ${DNS_TTL} --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
   gcloud dns record-sets transaction execute -z ${DNS_ZONE} --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # release public IP
