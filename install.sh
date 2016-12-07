@@ -3,6 +3,8 @@
 
 BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
+env
+
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"

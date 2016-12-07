@@ -6,6 +6,8 @@
 
 BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
+env
+
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/setup.sh"
