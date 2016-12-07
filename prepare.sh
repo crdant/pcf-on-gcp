@@ -25,7 +25,7 @@ network () {
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-tcp-load-balancers-${DOMAIN_TOKEN}" --allow "tcp:1024-65535" --description "Allow access to load balancers for TCP routing" --network "pcf-${DOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-tcp-lb" --no-user-output-enabled
 
   # create firewall rule for the IPSec AddOn
-  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-ipsec-${DOMAIN_TOKEN}" --allow "udp:500;ah;esp" --description "Enable IPSec access to the network" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${ALL_INTERNET} --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-ipsec-${DOMAIN_TOKEN}" --allow "udp:500,ah,esp" --description "Enable IPSec access to the network" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${ALL_INTERNET} --no-user-output-enabled
 
   # create additional firewall rules that are not in the documentation but seem to be necessary based on my experiments
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-bosh-${DOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access from internal sources to the BOSH director" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "bosh" --no-user-output-enabled
