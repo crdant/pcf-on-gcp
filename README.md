@@ -25,9 +25,11 @@ GCP_ACCESS_KEY_ID="Google storage interoperability access key id"
 GCP_SECRET_ACCESS_KEY="Google storage interoperability secret access key"
 ```
 
-You can add other variables there to override the variables in `lib/env.sh`. Some of those will move into commandline arguments soon,
+You can add other variables there to override the variables in `lib/env.sh`. Some of those will move into command-line arguments soon,
 but you can customize them otherwise using `personal.sh` today. You should look through `lib/env.sh` to make sure you are happy with the
-defaults (especially the region and availability zone variables, and the various product version variables).
+defaults (especially the region and availability zone variables, and the various product version variables). The passwords will also be
+randomized in the main scripts sometime in the near future, but you could still override them to specific values in `personal.sh` if
+desired.
 
 There is also an assumption that the environment variable `PIVNET_TOKEN` is set in your environment (I do that in my `.zshenv`). If you
 don't already have it set to your Pivotal Network API token, you can set that in `personal.sh` as well.
