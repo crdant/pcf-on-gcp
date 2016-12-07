@@ -1,13 +1,5 @@
 # common environmnet configuration for these scripts
 
-if [ -n "$ZSH_VERSION" ]; then
-   MYDIR="${0:a:h}"
-else
-   MYDIR=`dirname ${BASH_SOURCE[0]}`
-fi
-
-. "${MYDIR}/generate_passphrase.sh"
-
 env () {
   REGION_1="us-east1"
   STORAGE_LOCATION="us"
@@ -22,6 +14,7 @@ env () {
   CIDR="10.0.0.0/20"
   ALL_INTERNET="0.0.0.0/0"
   KEYDIR="${BASEDIR}/keys"
+  PASSWORD_LIST="${KEYDIR}/password-list"
 
   PCF_SYSTEM_DOMAIN=system.${SUBDOMAIN}
   PCF_APPS_DOMAIN=apps.${SUBDOMAIN}
@@ -52,4 +45,10 @@ env () {
   HTTP_LOAD_BALANCER_NAME="pcf-http-router-${DOMAIN_TOKEN}"
   WS_LOAD_BALANCER_NAME="pcf-websockets-${DOMAIN_TOKEN}"
   TCP_LOAD_BALANCER_NAME="pcf-tcp-router-${DOMAIN_TOKEN}"
+
+  # set variables for passwords if they are available
+  if [ -e ${PASSWORD_LIST} ] ; then
+    . ${PASSWORD_LIST}
+  fi
+
 }

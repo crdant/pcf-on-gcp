@@ -131,6 +131,13 @@ security () {
 
   # delete the service account
   gcloud iam service-accounts delete bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
+
+  # get rid of the saved passwords
+  passwords
+}
+
+passwords () {
+    rm "${PASSWORD_LIST}"
 }
 
 network () {

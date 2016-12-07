@@ -16,20 +16,13 @@ ACCOUNT="your-account@your-domain-or-gmail.com"
 PROJECT="your-project"
 DOMAIN="domain-for-your-pcf-install.tld"
 
-ADMIN_PASSWORD="password for ops manager/UAA admin"
-DECRYPTION_PASSPHRASE="decryption passphrase for ops manager"
-DB_ROOT_PASSWORD="root password for service broker database"
-DB_USER_PASSWORD="user password for service broker database"
-
 GCP_ACCESS_KEY_ID="Google storage interoperability access key id"
 GCP_SECRET_ACCESS_KEY="Google storage interoperability secret access key"
 ```
 
 You can add other variables there to override the variables in `lib/env.sh`. Some of those will move into command-line arguments soon,
 but you can customize them otherwise using `personal.sh` today. You should look through `lib/env.sh` to make sure you are happy with the
-defaults (especially the region and availability zone variables, and the various product version variables). The passwords will also be
-randomized in the main scripts sometime in the near future, but you could still override them to specific values in `personal.sh` if
-desired.
+defaults (especially the region and availability zone variables, and the various product version variables).
 
 There is also an assumption that the environment variable `PIVNET_TOKEN` is set in your environment (I do that in my `.zshenv`). If you
 don't already have it set to your Pivotal Network API token, you can set that in `personal.sh` as well.
@@ -47,6 +40,10 @@ $ prepare.sh
 In between the two steps, there you need to go into the Ops Manager UI and configure the Google Cloud Platform tile. This will start the BOSH
 director in your environment.  There are some steps there that are not easily done via the Ops Manager APIs, though I have some ideas and may
 be able to do some additional automation there.
+
+Passwords and various certificates and private keys used by the installation will be in the directory `keys` after the preparation step has
+run. The most important items are the passwords in `keys/password-list` and the private key `keys/vcap-key` which you will need for operating
+the environment.
 
 **NOTE: When you run the install script you will be accepting the EULA(s) for the product(s) you are installing. I strongly recommend you review
 any EULA you are agreeing to before you accept it.**

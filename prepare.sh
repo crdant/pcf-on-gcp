@@ -10,6 +10,7 @@ env
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/random_phrase.sh"
+. "${BASEDIR}/lib/generate_passphrase.sh"
 
 network () {
   # create a network (parameterize the network name and project later)
@@ -53,7 +54,23 @@ security () {
   gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file sshKeys=${KEYDIR}/vcap-key.pub --no-user-output-enabled
   mv ${KEYDIR}/vcap-key.pub.gcp ${KEYDIR}/vcap-key.pub
 
+  passwords
+
   echo "Created service account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com and added SSH key to project (private key file: ${KEYDIR}/vcap-key)..."
+}
+
+passwords () {
+  ADMIN_PASSWORD=`generate_passphrase 4`
+  DECRYPTION_PASSPHRASE=`generate_passphrase 5`
+  DB_ROOT_PASSWORD=`generate_passphrase 3`
+  DB_USER_PASSWORD=`generate_passphrase 3`
+  cat <<PASSWORD_LIST > "${PASSWORD_LIST}"
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
+DECRYPTION_PASSPHRASE=${DECRYPTION_PASSPHRASE}
+DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+DB_USER_PASSWORD=${DB_USER_PASSWORD}
+PASSWORD_LIST
+  chmod 700 "${PASSWORD_LIST}"
 }
 
 ssl_certs () {
@@ -287,7 +304,7 @@ SQL
   echo "Service broker database created. Configred the service broker tile with user 'pcf' and service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com."
   echo "Service broker service account credentials are at ${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json"
   echo "To connect to the database, use the following command-line: "
-  echo "    mysql -uroot -p${DATABSE_ROOT_PASSWORD} -h `cat \"${TMPDIR}/gcp-service-broker-db.ip\"` --ssl-ca=\"${KEYDIR}/gcp-service-broker-db-server.crt\"  --ssl-cert=\"${KEYDIR}/gcp-service-broker-db-client.crt\" --ssl-key=\"${KEYDIR}/gcp-service-broker-db-client.key\""
+  echo "    mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat \"${TMPDIR}/gcp-service-broker-db.ip\"` --ssl-ca=\"${KEYDIR}/gcp-service-broker-db-server.crt\"  --ssl-cert=\"${KEYDIR}/gcp-service-broker-db-client.crt\" --ssl-key=\"${KEYDIR}/gcp-service-broker-db-client.key\""
 }
 
 START_TIMESTAMP=`date`
