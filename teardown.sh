@@ -21,7 +21,6 @@ vms () {
 
 service_broker () {
   gcloud sql --project="${PROJECT}" instances delete `cat "${TMPDIR}/gcp-service-broker-db.name"` --quiet
-  gcloud sql --project="${PROJECT}" ssl-certs delete "pcf.${SUBDOMAIN}" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
   rm "${KEYDIR}/gcp-service-broker-db-server.crt" "${KEYDIR}/gcp-service-broker-db-client.key" "${KEYDIR}/gcp-service-broker-db-client.crt"
   gcloud iam service-accounts delete service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 }
