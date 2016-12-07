@@ -8,7 +8,7 @@ noun_file="$TMPDIR/nouns.txt"
 if [ ! -f "${adjective_file}" ] ; then
   curl -qsf -o "${adjective_file}" "${CF_CLI_GITHUB_RAW_ROOT}/util/words/dict/adjectives.txt"
 fi
-adjectives_lines=`wc -l $adjective_file | awk '{ print $1 }'`
+adjective_lines=`wc -l $adjective_file | awk '{ print $1 }'`
 
 
 if [ ! -f "${noun_file}" ] ; then
