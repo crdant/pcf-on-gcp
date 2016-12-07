@@ -146,16 +146,24 @@ products () {
 }
 
 cloud_foundry () {
-  # accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
+  accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
   # echo "Downloading Cloud Foundry Elastic Runtime..."
-  # tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
+  tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
   # echo "Uploading Cloud Foundry Elastic Runtime..."
-  # upload_tile $tile_file
+  upload_tile $tile_file
   # echo "Staging Cloud Foundry Elastic Runtime..."
-  # stage_product "cf"
+  stage_product "cf"
   PCF_GUID=`product_guid "cf"`
-  
-  # set the load balancers resource configuration
+
+  # configure BLOB storage locations, system domain, etc. doesn't set everything yet (SSL certificate info doesn't
+  # come back with a GET so it's hard to figure out how to set it)
+  PRIVATE_KEY=`cat ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.key`
+  SSL_CERT=`cat ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
+  # looks funny, but it keeps us from polluting the environment
+  PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY; envsubst < api-calls/elastic_runtime.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY`
+  set_properties "cf" "${PROPERTIES_JSON}"
+
+  set the load balancers resource configuration
   ROUTER_GUID=`job_guid cf router`
   ROUTER_RESOURCES=`curl -qs --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${ROUTER_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"`
   ROUTER_LBS="[ \"tcp:$WS_LOAD_BALANCER_NAME\", \"http:$HTTP_LOAD_BALANCER_NAME\" ]"
@@ -176,7 +184,6 @@ cloud_foundry () {
   BRAIN_RESOURCES=`echo $BRAIN_RESOURCES | jq ".elb_names = $BRAIN_LBS"`
   curl -qs --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${BRAIN_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
     -H "Content-Type: application/json" -d "${BRAIN_RESOURCES}"
-
 }
 
 mysql () {
