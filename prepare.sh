@@ -11,6 +11,7 @@ env
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/random_phrase.sh"
 . "${BASEDIR}/lib/generate_passphrase.sh"
+. "${BASEDIR}/lib/product_guid.sh"
 . "${BASEDIR}/lib/configure_networks_azs.sh"
 
 network () {
@@ -267,17 +268,12 @@ ops_manager () {
   # log in to the ops_manager so the script can manipulate it later
   login_ops_manager
 
-  # configure networking for BOSH director
-  # looks funny, but it keeps us from polluting the environment
-  DIRECTOR_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 ; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1`
-  configure_networks_azs "p-bosh" "${DIRECTOR_NETWORK_SETTINGS}"
-
   # prepare for downloading products from the Pivotal Network
   echo "Providing Pivotal Network settings to Operations Manager..."
   curl -qsf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/settings/pivotal_network_settings" \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
       -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
-  echo "Operations Manager installed and prepared for tile configruation."
+  echo "Operations Manager installed and prepared for tile configruation. If you are using install.sh, be sure to create BOSH network gcp-${REGION_1}"
 }
 
 cloud_foundry () {
