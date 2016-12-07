@@ -12,6 +12,7 @@ upload_tile () {
 upload_addon () {
   product_file=$1
 
-  echo "Upload not yet implememented. You need to run the following: "
-  echo "   scp -i ${KEYDIR}/vcap-key $product_file vcap@BOSH_DIRECTOR_HOST:$product_file"
+  director_public_ip=`gcloud --format=json compute --project ${PROJECT} instances list --filter='tags.items:director' | jq --raw-output '. [] .networkInterfaces [] .accessConfigs [] | select ( .name="External NAT" ) .natIP'`
+  echo "Upload not yet implememented. You need to run (something like) the following: "
+  echo "   scp -i ${KEYDIR}/vcap-key $product_file vcap@$director_public_ip:$product_file"
 }
