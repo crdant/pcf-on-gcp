@@ -1,5 +1,13 @@
 # common environmnet configuration for these scripts
 
+if [ -n "$ZSH_VERSION" ]; then
+   MYDIR="${0:a:h}"
+else
+   MYDIR=`dirname ${BASH_SOURCE[0]}`
+fi
+
+. "${MYDIR}/generate_passphrase.sh"
+
 env () {
   REGION_1="us-east1"
   STORAGE_LOCATION="us"
