@@ -174,4 +174,4 @@ network
 END_TIMESTAMP=`date`
 END_SECONDS=`date +%s`
 ELAPSED_TIME=`echo $((END_SECONDS-START_SECONDS)) | awk '{print int($1/60)":"int($1%60)}'`
-echo "Started tearing down Cloud Foundry installation in Google Cloud Platform project ${PROJECT} at ${END_TIMESTAMP} (elapsed time ${ELAPSED_TIME})."
+echo "Finished tearing down Cloud Foundry installation in Google Cloud Platform project ${PROJECT} at ${END_TIMESTAMP} (elapsed time ${ELAPSED_TIME})."
