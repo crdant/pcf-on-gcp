@@ -148,11 +148,11 @@ products () {
 
 cloud_foundry () {
   accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
-  # echo "Downloading Cloud Foundry Elastic Runtime..."
+  echo "Downloading Cloud Foundry Elastic Runtime..."
   tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
-  # echo "Uploading Cloud Foundry Elastic Runtime..."
+  echo "Uploading Cloud Foundry Elastic Runtime..."
   upload_tile $tile_file
-  # echo "Staging Cloud Foundry Elastic Runtime..."
+  echo "Staging Cloud Foundry Elastic Runtime..."
   stage_product "cf"
   PCF_GUID=`product_guid "cf"`
 
@@ -162,8 +162,8 @@ cloud_foundry () {
   SSL_CERT=`cat ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
 
   # looks funny, but it keeps us from polluting the environment
-  DIRECTOR_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
-  configure_networks_azs "p-bosh" "${DIRECTOR_NETWORK_SETTINGS}"
+  CF_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  configure_networks_azs "p-bosh" "${CF_NETWORK_SETTINGS}"
 
   # looks funny, but it keeps us from polluting the environment
   PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY; envsubst < api-calls/elastic_runtime_properties.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY`
@@ -201,6 +201,9 @@ mysql () {
   echo "Staging MySQL Service..."
   stage_product "p-mysql"
   MYSQL_GUID=`product_guid "p-mysql"`
+
+  MYSQL_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  configure_networks_azs "p-mysql" "${MYSQL_NETWORK_SETTINGS}"
 }
 
 rabbit () {
@@ -212,6 +215,9 @@ rabbit () {
   echo "Staging Rabbit MQ Service..."
   stage_product "p-rabbitmq"
   RABBIT_GUID=`product_guid "p-rabbitmq"`
+
+  RABBIT_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  configure_networks_azs "p-rabbitmq" "${RABBIT_NETWORK_SETTINGS}"
 }
 
 redis () {
@@ -223,6 +229,9 @@ redis () {
   echo "Staging REDIS Service..."
   stage_product "p-redis"
   REDIS_GUID=`product_guid "p-redis"`
+
+  REDIS_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  configure_networks_azs "p-redis" "${REDIS_NETWORK_SETTINGS}"
 }
 
 spring_cloud_services () {
@@ -234,6 +243,9 @@ spring_cloud_services () {
   echo "Staging Spring Cloud Services..."
   stage_product "p-spring-cloud-services"
   SCS_GUID=`product_guid "p-spring-cloud-services"`
+
+  SCS_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  configure_networks_azs "p-spring-cloud-services" "${SCS_NETWORK_SETTINGS}"
 }
 
 service_broker () {
@@ -246,6 +258,9 @@ service_broker () {
   echo "Staging GCP Service Broker..."
   stage_product "gcp-service-broker"
   GCP_GUID=`product_guid "gcp-service-broker"`
+
+  GCP_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  configure_networks_azs "p-spring-cloud-services" "${GCP_NETWORK_SETTINGS}"
 }
 
 gemfire () {
