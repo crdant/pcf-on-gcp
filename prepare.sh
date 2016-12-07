@@ -24,6 +24,9 @@ network () {
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-load-balancers-${DOMAIN_TOKEN}" --allow "tcp:80,tcp:443,tcp:2222,tcp:8080" --description "Allow web, log, and SSH access to the load balancers" --network "pcf-${DOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-lb" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-tcp-load-balancers-${DOMAIN_TOKEN}" --allow "tcp:1024-65535" --description "Allow access to load balancers for TCP routing" --network "pcf-${DOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-tcp-lb" --no-user-output-enabled
 
+  # create firewall rule for the IPSec AddOn
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-ipsec-${DOMAIN_TOKEN}" --allow "udp:500;ah;esp" --description "Enable IPSec access to the network" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${ALL_INTERNET} --no-user-output-enabled
+
   # create additional firewall rules that are not in the documentation but seem to be necessary based on my experiments
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-bosh-${DOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access from internal sources to the BOSH director" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "bosh" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-cloud-controller-${DOMAIN_TOKEN}" --allow "tcp:80,tcp:443" --description "Allow web access from internal sources to the cloud controller" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "cloud-controller" --no-user-output-enabled
@@ -218,7 +221,7 @@ ops_manager () {
   # now let's get ops manager going
   echo "Setting up Operations Manager authentication and adminsitrative user..."
   SETUP_JSON=`envsubst < api-calls/setup.json`
-  curl --insecure "${OPS_MANAGER_API_ENDPOINT}/setup" -X POST -H "Content-Type: application/json" -d "${SETUP_JSON}"
+  curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/setup" -X POST -H "Content-Type: application/json" -d "${SETUP_JSON}"
   echo "Operation manager configured. Your username is admin and password is ${ADMIN_PASSWORD}."
 
   # log in to the ops_manager so the script can manipulate it later
@@ -226,7 +229,7 @@ ops_manager () {
 
   # prepare for downloading products from the Pivotal Network
   echo "Providing Pivotal Network settings to Operations Manager..."
-  curl --insecure "${OPS_MANAGER_API_ENDPOINT}/settings/pivotal_network_settings" -X PUT \
+  curl -qsf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/settings/pivotal_network_settings" \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
       -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
   echo "Operations Manager installed and prepared for tile configruation."
@@ -254,7 +257,7 @@ service_broker () {
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner" --no-user-output-enabled
   echo "Service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
 
-  GCP_BROKER_DATABASE_NAME="${GCP_BROKER_DATABASE_NAME}"`random_phrase`
+  GCP_BROKER_DATABASE_NAME="gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}-"`random_phrase`
   # TODO: store this in a file that won't go away if we reboot
   echo "${GCP_BROKER_DATABASE_NAME}" > "${TMPDIR}/gcp-service-broker-db.name"
   echo "Creating ${GCP_BROKER_DATABASE_NAME} database for service broker..."

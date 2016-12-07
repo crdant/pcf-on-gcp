@@ -134,6 +134,9 @@ network () {
   gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-bosh-${DOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-cloud-controller-${DOMAIN_TOKEN}" --quiet
 
+  # remove firewall rule for the IPSec AddOn
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-ipsec-${DOMAIN_TOKEN}" --quiet
+
   # remove necessary firewall rules
   gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-allow-internal-traffic-${DOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-opsmanager-${DOMAIN_TOKEN}" --quiet
