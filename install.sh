@@ -21,6 +21,7 @@ init () {
   INSTALL_GCP=0
   INSTALL_GEMFIRE=0
   INSTALL_CONCOURSE=0
+  INSTALL_IPSEC=0
 }
 
 parse_args () {
@@ -54,6 +55,9 @@ parse_args () {
           "concourse")
             INSTALL_CONCOURSE=1
             ;;
+          "ipsec")
+            INSTALL_IPSEC=1
+            ;;
           "default")
             set_defaults
             ;;
@@ -66,6 +70,7 @@ parse_args () {
             INSTALL_GCP=1
             INSTALL_GEMFIRE=1
             INSTALL_CONCOURSE=1
+            INSTALL_IPSEC=1
             ;;
           "--help")
             usage
@@ -93,7 +98,7 @@ set_defaults () {
 
 usage () {
   cmd=`basename $0`
-  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ]"
+  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ] [ ipsec ]"
 }
 
 products () {
@@ -127,6 +132,11 @@ products () {
 
   if [ "$INSTALL_CONCOURSE" -eq 1 ] ; then
     concourse
+  fi
+
+  if [ "$INSTALL_IPSEC" -eq 1 ] ; then
+    echo "WARNING: Be sure to install the IPSec add-on before any other products"
+    ipsec
   fi
 
 }
@@ -245,6 +255,17 @@ concourse () {
   echo "Staging Concourse..."
   stage_product "p-concourse"
   CONCOURSE_GUID=`product_guid "p-concourse"`
+}
+
+ipsec () {
+  accept_eula "p-ipsec-addon" "${IPSEC_VERSION}" "yes"
+  echo "Downloading IPSec Add-on..."
+  tile_file=`download_product "p-ipsec-addon" "${IPSEC_VERSION}"`
+  echo "Uploading IPSec Add-on..."
+  upload_product $tile_file
+  echo "Staging IPSec Add-on..."
+  stage_product "p-ipsec-addon"
+  CONCOURSE_GUID=`product_guid "p-ipsec-addon"`
 }
 
 START_TIMESTAMP=`date`

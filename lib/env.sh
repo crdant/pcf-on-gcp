@@ -38,6 +38,7 @@ env () {
   GCP_VERSION_NUM=`echo ${GCP_VERSION} | sed 's/[^0-9.]*//g'`
   GEM_VERSION="1.6.3"
   CONCOURSE_VERSION="1.0.0-edge.3"
+  IPSEC_VERSION="1.5.37"
 
   SSH_LOAD_BALANCER_NAME="pcf-ssh-${DOMAIN_TOKEN}"
   HTTP_LOAD_BALANCER_NAME="pcf-http-router-${DOMAIN_TOKEN}"
