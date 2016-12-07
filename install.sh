@@ -100,7 +100,7 @@ set_defaults () {
 
 usage () {
   cmd=`basename $0`
-  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ] [ ipsec ]"
+  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ]"
 }
 
 products () {
