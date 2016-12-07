@@ -13,6 +13,8 @@ env
 . "${BASEDIR}/lib/upload_product.sh"
 . "${BASEDIR}/lib/stage_product.sh"
 . "${BASEDIR}/lib/product_guid.sh"
+. "${BASEDIR}/lib/job_guid.sh"
+. "${BASEDIR}/lib/set_properties.sh"
 
 init () {
   INSTALL_PCF=0
@@ -144,19 +146,15 @@ products () {
 }
 
 cloud_foundry () {
-  accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
-  echo "Downloading Cloud Foundry Elastic Runtime..."
-  tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
-  echo "Uploading Cloud Foundry Elastic Runtime..."
-  upload_tile $tile_file
-  echo "Staging Cloud Foundry Elastic Runtime..."
-  stage_product "cf"
+  # accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
+  # echo "Downloading Cloud Foundry Elastic Runtime..."
+  # tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
+  # echo "Uploading Cloud Foundry Elastic Runtime..."
+  # upload_tile $tile_file
+  # echo "Staging Cloud Foundry Elastic Runtime..."
+  # stage_product "cf"
   PCF_GUID=`product_guid "cf"`
-
-  # configure BLOB storage locations
-  PROPERTIES_JSON=`envsubst < api-calls/elastic_runtime_blobstore_properties.json`
-  set_properties "cf" "${PROPERTIES_JSON}"
-
+  
   # set the load balancers resource configuration
   ROUTER_GUID=`job_guid cf router`
   ROUTER_RESOURCES=`curl -qs --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${ROUTER_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"`
