@@ -9,7 +9,7 @@ env
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/eula.sh"
-. "${BASEDIR}/lib/download_product.sh"
+. "${BASEDIR}/lib/download_tile.sh"
 . "${BASEDIR}/lib/upload_product.sh"
 . "${BASEDIR}/lib/stage_product.sh"
 . "${BASEDIR}/lib/product_guid.sh"
@@ -146,7 +146,7 @@ products () {
 cloud_foundry () {
   accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
   echo "Downloading Cloud Foundry Elastic Runtime..."
-  tile_file=`download_product "elastic-runtime" "${PCF_VERSION}"`
+  tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
   echo "Uploading Cloud Foundry Elastic Runtime..."
   upload_product $tile_file
   echo "Staging Cloud Foundry Elastic Runtime..."
@@ -184,7 +184,7 @@ cloud_foundry () {
 mysql () {
   accept_eula "p-mysql" "${MYSQL_VERSION}" "yes"
   echo "Downloading MySQL Service..."
-  tile_file=`download_product "p-mysql" "${MYSQL_VERSION}"`
+  tile_file=`download_tile "p-mysql" "${MYSQL_VERSION}"`
   echo "Uploading MySQL Service..."
   upload_product $tile_file
   echo "Staging MySQL Service..."
@@ -195,7 +195,7 @@ mysql () {
 rabbit () {
   accept_eula "pivotal-rabbitmq-service" "${RABBIT_VERSION}" "yes"
   echo "Downloading Rabbit MQ Service..."
-  tile_file=`download_product "pivotal-rabbitmq-service" "${RABBIT_VERSION}"`
+  tile_file=`download_tile "pivotal-rabbitmq-service" "${RABBIT_VERSION}"`
   echo "Uploading Rabbit MQ Service..."
   upload_product $tile_file
   echo "Staging Rabbit MQ Service..."
@@ -206,7 +206,7 @@ rabbit () {
 redis () {
   accept_eula "p-redis" "${REDIS_VERSION}" "yes"
   echo "Downloading REDIS Service..."
-  tile_file=`download_product "pivotal-rabbitmq-service" "${REDIS_VERSION}"`
+  tile_file=`download_tile "pivotal-rabbitmq-service" "${REDIS_VERSION}"`
   echo "Uploading REDIS Service..."
   upload_product $tile_file
   echo "Staging REDIS Service..."
@@ -217,7 +217,7 @@ redis () {
 spring_cloud_services () {
   accept_eula "p-spring-cloud-services" "${SCS_VERSION}" "yes"
   echo "Downloading Spring Cloud Services..."
-  tile_file=`download_product "p-spring-cloud-services" "${SCS_VERSION}"`
+  tile_file=`download_tile "p-spring-cloud-services" "${SCS_VERSION}"`
   echo "Uploading Spring Cloud Services..."
   upload_product $tile_file
   echo "Staging Spring Cloud Services..."
@@ -229,7 +229,7 @@ service_broker () {
   # download the broker and make it available
   accept_eula "gcp-service-broker" "${GCP_VERSION}" "yes"
   echo "Downloading GCP Service Broker..."
-  tile_file=`download_product "gcp-service-broker" "${GCP_VERSION}"`
+  tile_file=`download_tile "gcp-service-broker" "${GCP_VERSION}"`
   echo "Uploading GCP Service Broker..."
   upload_product $tile_file
   echo "Staging GCP Service Broker..."
@@ -240,7 +240,7 @@ service_broker () {
 gemfire () {
   accept_eula "p-gemfire" "${GEM_VERSION}" "yes"
   echo "Downloading Gemfire..."
-  tile_file=`download_product "p-gemfire" "${GEM_VERSION}"`
+  tile_file=`download_tile "p-gemfire" "${GEM_VERSION}"`
   echo "Uploading Gemfire..."
   upload_product $tile_file
   echo "Staging Gemfire..."
@@ -251,7 +251,7 @@ gemfire () {
 concourse () {
   accept_eula "p-concourse" "${CONCOURSE_VERSION}" "yes"
   echo "Downloading Concourse..."
-  tile_file=`download_product "p-concourse" "${CONCOURSE_VERSION}"`
+  tile_file=`download_tile "p-concourse" "${CONCOURSE_VERSION}"`
   echo "Uploading Concourse..."
   upload_product $tile_file
   echo "Staging Concourse..."
@@ -262,7 +262,7 @@ concourse () {
 ipsec () {
   accept_eula "p-ipsec-addon" "${IPSEC_VERSION}" "yes"
   echo "Downloading IPSec Add-on..."
-  tile_file=`download_product "p-ipsec-addon" "${IPSEC_VERSION}"`
+  tile_file=`download_addon "p-ipsec-addon" "${IPSEC_VERSION}"`
   echo "Uploading IPSec Add-on..."
   upload_product $tile_file
   echo "Staging IPSec Add-on..."
