@@ -75,11 +75,10 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" target-http-proxies delete "pcf-router-http-proxy-${DOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" ssl-certificates delete "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" url-maps delete "${HTTP_LOAD_BALANCER_NAME}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --quiet
-
-  gcloud compute --project "${PROJECT}" backend-services delete "${HTTP_LOAD_BALANCER_NAME}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services delete "${HTTP_LOAD_BALANCER_NAME}" --global --quiet
   gcloud compute --project "${PROJECT}" http-health-checks delete "pcf-http-router-health-check-${DOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" addresses delete "${HTTP_LOAD_BALANCER_NAME}" --global --quiet
 
