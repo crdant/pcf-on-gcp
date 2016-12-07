@@ -9,7 +9,7 @@ env
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/eula.sh"
-. "${BASEDIR}/lib/download_tile.sh"
+. "${BASEDIR}/lib/download_product.sh"
 . "${BASEDIR}/lib/upload_product.sh"
 . "${BASEDIR}/lib/stage_product.sh"
 . "${BASEDIR}/lib/product_guid.sh"
@@ -263,11 +263,7 @@ ipsec () {
   accept_eula "p-ipsec-addon" "${IPSEC_VERSION}" "yes"
   echo "Downloading IPSec Add-on..."
   tile_file=`download_addon "p-ipsec-addon" "${IPSEC_VERSION}"`
-  echo "Uploading IPSec Add-on..."
-  upload_product $tile_file
-  echo "Staging IPSec Add-on..."
-  stage_product "p-ipsec-addon"
-  CONCOURSE_GUID=`product_guid "p-ipsec-addon"`
+  echo "IPSec Add-on downloaded, please install with BOSH..."
 }
 
 START_TIMESTAMP=`date`
