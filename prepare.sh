@@ -7,6 +7,7 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
+. "${BASEDIR}/lib/random_phrase.sh"
 
 network () {
   # create a network (parameterize the network name and project later)
@@ -211,7 +212,7 @@ ops_manager () {
   echo "Operations Manager instance created..."
 
   # noticed I was getting 502 and 503 errors on the setup calls below, so sleeping to see if that helps
-  echo "Waiting for Operations Manager instance to be available with updated DNS..."
+  echo "Waiting for ${DNS_TTL} seconds for Operations Manager instance to be available and DNS to be updated..."
   sleep ${DNS_TTL}
 
   # now let's get ops manager going
@@ -254,21 +255,23 @@ service_broker () {
   echo "Service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
 
   echo "Creating database for service broker..."
-  gcloud sql --project="${PROJECT}" instances create "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --assign-ip --require-ssl --authorized-networks="${ALL_INTERNET}" --region=${REGION_1}  --gce-zone=${AVAILABILITY_ZONE_1} --no-user-output-enabled
-  gcloud sql --project="${PROJECT}" instances set-root-password "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --password="${DB_ROOT_PASSWORD}" --no-user-output-enabled
+  GCP_BROKER_DATABASE_NAME="${GCP_BROKER_DATABASE_NAME}"`random_phrase`
+  echo "${GCP_BROKER_DATABASE_NAME}" > "${TMPDIR}/gcp-service-broker-db.name"
+  gcloud sql --project="${PROJECT}" instances create "${GCP_BROKER_DATABASE_NAME}" --assign-ip --require-ssl --authorized-networks="${ALL_INTERNET}" --region=${REGION_1}  --gce-zone=${AVAILABILITY_ZONE_1} --no-user-output-enabled
+  gcloud sql --project="${PROJECT}" instances set-root-password "${GCP_BROKER_DATABASE_NAME}" --password="${DB_ROOT_PASSWORD}" --no-user-output-enabled
   # server connection requirements
-  gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output '.serverCaCert .cert ' > "${KEYDIR}/gcp-service-broker-db-server.crt"
-  gcloud --format json sql --project="${PROJECT}" instances describe "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > "${TMPDIR}/gcp-service-broker-db.ip"
+  gcloud --format json sql --project="${PROJECT}" instances describe "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output '.serverCaCert .cert ' > "${KEYDIR}/gcp-service-broker-db-server.crt"
+  gcloud --format json sql --project="${PROJECT}" instances describe "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > "${TMPDIR}/gcp-service-broker-db.ip"
   # client connection requirements
-  gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" "${KEYDIR}/gcp-service-broker-db-client.key" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --no-user-output-enabled
-  gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" | jq --raw-output ' .cert ' > "${KEYDIR}/gcp-service-broker-db-client.crt"
+  gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" "${KEYDIR}/gcp-service-broker-db-client.key" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
+  gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output ' .cert ' > "${KEYDIR}/gcp-service-broker-db-client.crt"
   # setup a user
-  gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "${DB_USER_PASSWORD}" --instance "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --no-user-output-enabled
+  gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "${DB_USER_PASSWORD}" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
 
   # setup a database for the servicebroker
   GCP_AUTH_TOKEN=`gcloud auth application-default print-access-token`
-  curl -q -X POST "https://www.googleapis.com/sql/v1beta4/projects/${PROJECT}/instances/gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}/databases" \
-    -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d "{ \"instance\": \"gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}\", \"name\": \"servicebroker\", \"project\": \"${PROJECT}\" }"
+  curl -q -X POST "https://www.googleapis.com/sql/v1beta4/projects/${PROJECT}/instances/${GCP_BROKER_DATABASE_NAME}/databases" \
+    -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d "{ \"instance\": \"${GCP_BROKER_DATABASE_NAME}\", \"name\": \"servicebroker\", \"project\": \"${PROJECT}\" }"
 
   # setup a database and add permissions for the servicebroker user
   mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat "${TMPDIR}/gcp-service-broker-db.ip"` --ssl-ca="${KEYDIR}/gcp-service-broker-db-server.crt" \

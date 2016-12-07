@@ -18,7 +18,7 @@ vms () {
 }
 
 service_broker () {
-  gcloud sql --project="${PROJECT}" instances delete "gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}" --quiet
+  gcloud sql --project="${PROJECT}" instances delete `cat "${TMPDIR}/gcp-service-broker-db.name"` --quiet
   gcloud iam service-accounts delete service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 }
 
