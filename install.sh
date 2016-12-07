@@ -148,7 +148,7 @@ cloud_foundry () {
   echo "Downloading Cloud Foundry Elastic Runtime..."
   tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
   echo "Uploading Cloud Foundry Elastic Runtime..."
-  upload_product $tile_file
+  upload_tile $tile_file
   echo "Staging Cloud Foundry Elastic Runtime..."
   stage_product "cf"
   PCF_GUID=`product_guid "cf"`
@@ -186,7 +186,7 @@ mysql () {
   echo "Downloading MySQL Service..."
   tile_file=`download_tile "p-mysql" "${MYSQL_VERSION}"`
   echo "Uploading MySQL Service..."
-  upload_product $tile_file
+  upload_tile $tile_file
   echo "Staging MySQL Service..."
   stage_product "p-mysql"
   MYSQL_GUID=`product_guid "p-mysql"`
@@ -197,7 +197,7 @@ rabbit () {
   echo "Downloading Rabbit MQ Service..."
   tile_file=`download_tile "pivotal-rabbitmq-service" "${RABBIT_VERSION}"`
   echo "Uploading Rabbit MQ Service..."
-  upload_product $tile_file
+  upload_tile $tile_file
   echo "Staging Rabbit MQ Service..."
   stage_product "p-rabbitmq"
   RABBIT_GUID=`product_guid "p-rabbitmq"`
@@ -208,7 +208,7 @@ redis () {
   echo "Downloading REDIS Service..."
   tile_file=`download_tile "pivotal-rabbitmq-service" "${REDIS_VERSION}"`
   echo "Uploading REDIS Service..."
-  upload_product $tile_file
+  upload_tile $tile_file
   echo "Staging REDIS Service..."
   stage_product "p-redis"
   REDIS_GUID=`product_guid "p-redis"`
@@ -219,7 +219,7 @@ spring_cloud_services () {
   echo "Downloading Spring Cloud Services..."
   tile_file=`download_tile "p-spring-cloud-services" "${SCS_VERSION}"`
   echo "Uploading Spring Cloud Services..."
-  upload_product $tile_file
+  upload_tile $tile_file
   echo "Staging Spring Cloud Services..."
   stage_product "p-spring-cloud-services"
   SCS_GUID=`product_guid "p-spring-cloud-services"`
@@ -231,7 +231,7 @@ service_broker () {
   echo "Downloading GCP Service Broker..."
   tile_file=`download_tile "gcp-service-broker" "${GCP_VERSION}"`
   echo "Uploading GCP Service Broker..."
-  upload_product $tile_file
+  upload_tile $tile_file
   echo "Staging GCP Service Broker..."
   stage_product "gcp-service-broker"
   GCP_GUID=`product_guid "gcp-service-broker"`
@@ -242,7 +242,7 @@ gemfire () {
   echo "Downloading Gemfire..."
   tile_file=`download_tile "p-gemfire" "${GEM_VERSION}"`
   echo "Uploading Gemfire..."
-  upload_product $tile_file
+  upload_tile $tile_file
   echo "Staging Gemfire..."
   stage_product "p-gemfire"
   GEM_GUID=`product_guid "p-gemfire"`
@@ -253,7 +253,7 @@ concourse () {
   echo "Downloading Concourse..."
   tile_file=`download_tile "p-concourse" "${CONCOURSE_VERSION}"`
   echo "Uploading Concourse..."
-  upload_product $tile_file
+  upload_tile $tile_file
   echo "Staging Concourse..."
   stage_product "p-concourse"
   CONCOURSE_GUID=`product_guid "p-concourse"`
@@ -262,8 +262,9 @@ concourse () {
 ipsec () {
   accept_eula "p-ipsec-addon" "${IPSEC_VERSION}" "yes"
   echo "Downloading IPSec Add-on..."
-  tile_file=`download_addon "p-ipsec-addon" "${IPSEC_VERSION}"`
-  echo "IPSec Add-on downloaded, please install with BOSH..."
+  addon_file=`download_addon "p-ipsec-addon" "${IPSEC_VERSION}"`
+  echo "Uploading IPSec Add-on to the BOSH Director..."
+  upload_addon $addon_file
 }
 
 START_TIMESTAMP=`date`
