@@ -269,7 +269,7 @@ service_broker () {
   # setup a user
   gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "${DB_USER_PASSWORD}" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
 
-  # setup a database for the servicebroker
+  # setup a MYSQL database for the servicebroker in the instance we created
   GCP_AUTH_TOKEN=`gcloud auth application-default print-access-token`
   curl -q -X POST "https://www.googleapis.com/sql/v1beta4/projects/${PROJECT}/instances/${GCP_BROKER_DATABASE_NAME}/databases" \
     -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d "{ \"instance\": \"${GCP_BROKER_DATABASE_NAME}\", \"name\": \"servicebroker\", \"project\": \"${PROJECT}\" }"
