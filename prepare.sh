@@ -254,9 +254,10 @@ service_broker () {
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner" --no-user-output-enabled
   echo "Service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
 
-  echo "Creating database for service broker..."
   GCP_BROKER_DATABASE_NAME="${GCP_BROKER_DATABASE_NAME}"`random_phrase`
+  # TODO: store this in a file that won't go away if we reboot
   echo "${GCP_BROKER_DATABASE_NAME}" > "${TMPDIR}/gcp-service-broker-db.name"
+  echo "Creating ${GCP_BROKER_DATABASE_NAME} database for service broker..."
   gcloud sql --project="${PROJECT}" instances create "${GCP_BROKER_DATABASE_NAME}" --assign-ip --require-ssl --authorized-networks="${ALL_INTERNET}" --region=${REGION_1}  --gce-zone=${AVAILABILITY_ZONE_1} --no-user-output-enabled
   gcloud sql --project="${PROJECT}" instances set-root-password "${GCP_BROKER_DATABASE_NAME}" --password="${DB_ROOT_PASSWORD}" --no-user-output-enabled
   # server connection requirements
