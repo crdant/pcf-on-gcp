@@ -4,7 +4,7 @@
 
   1. The GCP command-line tool `gcloud` ([get it here](https://cloud.google.com/sdk/))
   2. `jq` for parsing JSON outputs ([installation options](https://stedolan.github.io/jq/download/))
-  3. GNU gettext for doing substitution of environment variables in files (should be in your package manager, or [follow GNU project instructions](https://www.gnu.org/software/software.html#HowToGetSoftware))
+  3. GNU gettext for the `envsubst` command to substitute environment variables in files (should be in your package manager, or [follow GNU project instructions](https://www.gnu.org/software/software.html#HowToGetSoftware))
   3. A [Pivotal Network](https://network.pivotal.io) account and API token.
 
 ## Inputs
