@@ -14,6 +14,7 @@ env
 . "${BASEDIR}/lib/stage_product.sh"
 . "${BASEDIR}/lib/product_guid.sh"
 . "${BASEDIR}/lib/job_guid.sh"
+. "${BASEDIR}/lib/configure_networks_azs.sh"
 . "${BASEDIR}/lib/set_properties.sh"
 
 init () {
@@ -159,8 +160,13 @@ cloud_foundry () {
   # come back with a GET so it's hard to figure out how to set it)
   PRIVATE_KEY=`cat ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.key`
   SSL_CERT=`cat ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
+
   # looks funny, but it keeps us from polluting the environment
-  PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY; envsubst < api-calls/elastic_runtime.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY`
+  DIRECTOR_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  configure_networks_azs "p-bosh" "${DIRECTOR_NETWORK_SETTINGS}"
+
+  # looks funny, but it keeps us from polluting the environment
+  PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY; envsubst < api-calls/elastic_runtime_properties.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY`
   set_properties "cf" "${PROPERTIES_JSON}"
 
   set the load balancers resource configuration

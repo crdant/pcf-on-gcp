@@ -11,6 +11,7 @@ env
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/random_phrase.sh"
 . "${BASEDIR}/lib/generate_passphrase.sh"
+. "${BASEDIR}/lib/configure_networks_azs.sh"
 
 network () {
   # create a network (parameterize the network name and project later)
@@ -81,15 +82,33 @@ ssl_certs () {
   STATE="MA"
   CITY="Cambridge"
   ORGANIZATION="${DOMAIN}"
-  ORG_UNIT="Cloud"
+  ORG_UNIT="Cloud Foundry"
   EMAIL="${ACCOUNT}"
   ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.pcf.${SUBDOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
-  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout ${TMPDIR}/${DOMAIN_TOKEN}.key -out ${TMPDIR}/${DOMAIN_TOKEN}.crt -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
+  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${TMPDIR}/${DOMAIN_TOKEN}.key" -out "${TMPDIR}/${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
 
-  echo "SSL certificate created and stored at ${TMPDIR}/${DOMAIN_TOKEN}.crt, private key stored at ${TMPDIR}/${DOMAIN_TOKEN}.crt."
-  echo "The certificate is a wildcard for the following domains: ${COMMON_NAME}, ${ALT_NAMES}"
+  echo "SSL certificate for load balanacers created and stored at ${TMPDIR}/${DOMAIN_TOKEN}.crt, private key stored at ${TMPDIR}/${DOMAIN_TOKEN}.key."
+  echo "The certificate is a wildcard for the following domains: ${ALT_NAMES}"
+
+  echo "Creating SSL certificate for CF router..."
+
+  COMMON_NAME="*.${SUBDOMAIN}"
+  COUNTRY="US"
+  STATE="MA"
+  CITY="Cambridge"
+  ORGANIZATION="${DOMAIN}"
+  ORG_UNIT="Cloud Foundry Router"
+  EMAIL="${ACCOUNT}"
+  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.pcf.${SUBDOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
+  SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
+
+  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.key" -out "${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
+
+  echo "SSL certificate for CF router created and stored at ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt, private key stored at ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.key."
+  echo "The certificate is a wildcard for the following domains: ${ALT_NAMES}"
+
 }
 
 load_balancers () {
@@ -239,12 +258,19 @@ ops_manager () {
 
   # now let's get ops manager going
   echo "Setting up Operations Manager authentication and adminsitrative user..."
-  SETUP_JSON=`envsubst < api-calls/setup.json`
+
+  # this line looks a little funny, but it's to make sure we keep the passwords out of the environment
+  SETUP_JSON=`export ADMIN_PASSWORD DECRYPTION_PASSPHRASE ; envsubst < api-calls/setup.json ; unset ADMIN_PASSWORD ; unset DECRYPTION_PASSPHRASE`
   curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/setup" -X POST -H "Content-Type: application/json" -d "${SETUP_JSON}"
   echo "Operation manager configured. Your username is admin and password is ${ADMIN_PASSWORD}."
 
   # log in to the ops_manager so the script can manipulate it later
   login_ops_manager
+
+  # configure networking for BOSH director
+  # looks funny, but it keeps us from polluting the environment
+  DIRECTOR_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 ; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1`
+  configure_networks_azs "p-bosh" "${DIRECTOR_NETWORK_SETTINGS}"
 
   # prepare for downloading products from the Pivotal Network
   echo "Providing Pivotal Network settings to Operations Manager..."
