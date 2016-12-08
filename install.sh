@@ -249,26 +249,29 @@ spring_cloud_services () {
 }
 
 service_broker () {
-  # # download the broker and make it available
-  # accept_eula "gcp-service-broker" "${GCP_VERSION}" "yes"
-  # echo "Downloading GCP Service Broker..."
-  # tile_file=`download_tile "gcp-service-broker" "${GCP_VERSION}"`
-  # echo "Uploading GCP Service Broker..."
-  # upload_tile $tile_file
-  # echo "Staging GCP Service Broker..."
-  # stage_product "gcp-service-broker"
+  # download the broker and make it available
+  accept_eula "gcp-service-broker" "${GCP_VERSION}" "yes"
+  echo "Downloading GCP Service Broker..."
+  tile_file=`download_tile "gcp-service-broker" "${GCP_VERSION}"`
+  echo "Uploading GCP Service Broker..."
+  upload_tile $tile_file
+  echo "Staging GCP Service Broker..."
+  stage_product "gcp-service-broker"
   GCP_GUID=`product_guid "gcp-service-broker"`
 
-  CLIENT_KEY=`cat "${KEYDIR}/gcp-service-broker-db-client.key"`
-  CLIENT_CERT=`cat "${KEYDIR}/gcp-service-broker-db-client.crt"`
-  SERVER_CERT=`cat "${KEYDIR}/gcp-service-broker-db-server.crt"`
-  SERVICE_ACCOUNT_CREDENTIALS=`cat "${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json"`
+  # since sed works a line at a time, translate newlines to a character that isn't Base64, then
+  # replace that character with an escaped newline
+  CLIENT_KEY=`cat "${KEYDIR}/gcp-service-broker-db-client.key" | tr '\n' '%' | sed 's/%/\\\n/g'`
+  CLIENT_CERT=`cat "${KEYDIR}/gcp-service-broker-db-client.crt" | tr '\n' '%' | sed 's/%/\\\n/g'`
+  SERVER_CERT=`cat "${KEYDIR}/gcp-service-broker-db-server.crt" | tr '\n' '%' | sed 's/%/\\\n/g'`
+  SERVICE_ACCOUNT_CREDENTIALS=`cat "${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json" | jq -c '.' | sed 's/\"/\\\"/g'`
+  BROKER_DB_HOST=`cat "${TMPDIR}/gcp-service-broker-db.ip"`
 
   GCP_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   configure_networks_azs "gcp-service-broker" "${GCP_NETWORK_SETTINGS}"
 
   PROPERTIES_JSON=`export SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY CLIENT_CERT SERVER_CERT ; envsubst < api-calls/gcp-service-broker-properties.json ; unset SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY CLIENT_CERT SERVER_CERT`
-  set_properties "cf" "${PROPERTIES_JSON}"
+  set_properties "gcp-service-broker" "${PROPERTIES_JSON}"
 
 }
 

@@ -4,7 +4,7 @@
       "value": "${SERVICE_ACCOUNT_CREDENTIALS}"
     },
     ".properties.db_host": {
-      "value": null
+      "value": "${BROKER_DB_HOST}"
     },
     ".properties.db_username": {
       "value": "${BROKER_DB_USER}"
@@ -12,10 +12,10 @@
     ".properties.db_password": {
       "value": {
         "secret": "${BROKER_DB_USER_PASSWORD}"
-      },
+      }
     },
     ".properties.db_port": {
-      "value": "3306",
+      "value": "3306"
     },
     ".properties.ca_cert": {
       "value": "${SERVER_CERT}"
