@@ -47,6 +47,8 @@ env () {
   WS_LOAD_BALANCER_NAME="pcf-websockets-${DOMAIN_TOKEN}"
   TCP_LOAD_BALANCER_NAME="pcf-tcp-router-${DOMAIN_TOKEN}"
 
+  BROKER_DB_USER="pcf"
+  
   # set variables for passwords if they are available
   if [ -e ${PASSWORD_LIST} ] ; then
     . ${PASSWORD_LIST}

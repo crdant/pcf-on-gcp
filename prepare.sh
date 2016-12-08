@@ -65,12 +65,12 @@ passwords () {
   ADMIN_PASSWORD=`generate_passphrase 4`
   DECRYPTION_PASSPHRASE=`generate_passphrase 5`
   DB_ROOT_PASSWORD=`generate_passphrase 3`
-  DB_USER_PASSWORD=`generate_passphrase 3`
+  BROKER_DB_USER_PASSWORD=`generate_passphrase 3`
   cat <<PASSWORD_LIST > "${PASSWORD_LIST}"
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 DECRYPTION_PASSPHRASE=${DECRYPTION_PASSPHRASE}
 DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-DB_USER_PASSWORD=${DB_USER_PASSWORD}
+BROKER_DB_USER_PASSWORD=${BROKER_DB_USER_PASSWORD}
 PASSWORD_LIST
   chmod 700 "${PASSWORD_LIST}"
 }
@@ -85,7 +85,7 @@ ssl_certs () {
   ORGANIZATION="${DOMAIN}"
   ORG_UNIT="Cloud Foundry"
   EMAIL="${ACCOUNT}"
-  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.pcf.${SUBDOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
+  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
   openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${TMPDIR}/${DOMAIN_TOKEN}.key" -out "${TMPDIR}/${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
@@ -102,7 +102,7 @@ ssl_certs () {
   ORGANIZATION="${DOMAIN}"
   ORG_UNIT="Cloud Foundry Router"
   EMAIL="${ACCOUNT}"
-  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.pcf.${SUBDOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
+  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
   openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.key" -out "${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
@@ -308,10 +308,10 @@ service_broker () {
   gcloud --format json sql --project="${PROJECT}" instances describe "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output '.serverCaCert .cert ' > "${KEYDIR}/gcp-service-broker-db-server.crt"
   gcloud --format json sql --project="${PROJECT}" instances describe "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > "${TMPDIR}/gcp-service-broker-db.ip"
   # client connection requirements
-  gcloud sql --project="${PROJECT}" ssl-certs create "pcf.${SUBDOMAIN}" "${KEYDIR}/gcp-service-broker-db-client.key" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
-  gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "pcf.${SUBDOMAIN}" --instance "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output ' .cert ' > "${KEYDIR}/gcp-service-broker-db-client.crt"
+  gcloud sql --project="${PROJECT}" ssl-certs create "${BROKER_DB_USER}${SUBDOMAIN}" "${KEYDIR}/gcp-service-broker-db-client.key" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
+  gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "${BROKER_DB_USER}${SUBDOMAIN}" --instance "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output ' .cert ' > "${KEYDIR}/gcp-service-broker-db-client.crt"
   # setup a user
-  gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "${DB_USER_PASSWORD}" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
+  gcloud beta sql --project="${PROJECT}" users create "pcf" "%" --password "${BROKER_DB_USER_PASSWORD}" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
 
   # setup a MYSQL database for the servicebroker in the instance we created
   GCP_AUTH_TOKEN=`gcloud auth application-default print-access-token`
