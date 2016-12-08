@@ -12,10 +12,11 @@ env
 . "${BASEDIR}/lib/download_product.sh"
 . "${BASEDIR}/lib/upload_product.sh"
 . "${BASEDIR}/lib/stage_product.sh"
-. "${BASEDIR}/lib/product_guid.sh"
-. "${BASEDIR}/lib/job_guid.sh"
+. "${BASEDIR}/lib/guid.sh"
+
 . "${BASEDIR}/lib/configure_networks_azs.sh"
-. "${BASEDIR}/lib/set_properties.sh"
+. "${BASEDIR}/lib/properties.sh"
+. "${BASEDIR}/lib/resources.sh"
 
 init () {
   INSTALL_PCF=0
@@ -154,7 +155,6 @@ cloud_foundry () {
   upload_tile $tile_file
   echo "Staging Cloud Foundry Elastic Runtime..."
   stage_product "cf"
-  PCF_GUID=`product_guid "cf"`
 
   # configure BLOB storage locations, system domain, etc. doesn't set everything yet (SSL certificate info doesn't
   # come back with a GET so it's hard to figure out how to set it)
@@ -169,27 +169,21 @@ cloud_foundry () {
   PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAIN; envsubst < api-calls/elasic-runtime-properties.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAINt`
   set_properties "cf" "${PROPERTIES_JSON}"
 
-  set the load balancers resource configuration
-  ROUTER_GUID=`job_guid cf router`
-  ROUTER_RESOURCES=`curl -qs --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${ROUTER_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"`
+  # set the load balancers resource configuration
+  ROUTER_RESOURCES=`get_resources cf router`
   ROUTER_LBS="[ \"tcp:$WS_LOAD_BALANCER_NAME\", \"http:$HTTP_LOAD_BALANCER_NAME\" ]"
   ROUTER_RESOURCES=`echo $ROUTER_RESOURCES | jq ".elb_names = $ROUTER_LBS"`
-  curl -qs --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${ROUTER_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
-    -H "Content-Type: application/json" -d "${ROUTER_RESOURCES}"
+  set_resources cf router "${ROUTER_RESOURCES}"
 
-  TCP_ROUTER_GUID=`job_guid cf tcp_router`
-  TCP_ROUTER_RESOURCES=`curl -qs --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${TCP_ROUTER_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"`
+  TCP_ROUTER_RESOURCES=`get_resources cf tcp_router`
   TCP_ROUTER_LBS="[ \"tcp:$TCP_LOAD_BALANCER_NAME\" ]"
   TCP_ROUTER_RESOURCES=`echo $TCP_ROUTER_RESOURCES | jq ".elb_names = $TCP_ROUTER_LBS"`
-  curl -qs --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${TCP_ROUTER_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
-    -H "Content-Type: application/json" -d "${TCP_ROUTER_RESOURCES}"
+  set_resources cf tcp_router "${TCP_ROUTER_RESOURCES}"
 
-  BRAIN_GUID=`job_guid cf diego_brain`
-  BRAIN_RESOURCES=`curl -qs --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${BRAIN_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"`
+  BRAIN_RESOURCES=`get_resources cf diego_brain`
   BRAIN_LBS="[ \"tcp:$SSH_LOAD_BALANCER_NAME\" ]"
   BRAIN_RESOURCES=`echo $BRAIN_RESOURCES | jq ".elb_names = $BRAIN_LBS"`
-  curl -qs --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${PCF_GUID}/jobs/${BRAIN_GUID}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
-    -H "Content-Type: application/json" -d "${BRAIN_RESOURCES}"
+  set_resources cf tcp_router "${BRAIN_RESOURCES}"
 }
 
 mysql () {
@@ -223,7 +217,7 @@ rabbit () {
 redis () {
   accept_eula "p-redis" "${REDIS_VERSION}" "yes"
   echo "Downloading REDIS Service..."
-  tile_file=`download_tile "pivotal-rabbitmq-service" "${REDIS_VERSION}"`
+  tile_file=`download_tile "p-redis" "${REDIS_VERSION}"`
   echo "Uploading REDIS Service..."
   upload_tile $tile_file
   echo "Staging REDIS Service..."
