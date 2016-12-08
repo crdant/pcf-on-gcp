@@ -7,5 +7,6 @@ gcp-service-broker-db-server.crt
 gcp-service-broker-db.ip
 *-bosh-opsman-*.json
 *-service-broker-*.json
+!gcp-service-broker-properties.json
 keys/*
 !keys/README.md
