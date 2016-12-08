@@ -1,0 +1,30 @@
+{
+  "properties": {
+    ".properties.root_service_account_json": {
+      "value": "${SERVICE_ACCOUNT_CREDENTIALS}"
+    },
+    ".properties.db_host": {
+      "value": null
+    },
+    ".properties.db_username": {
+      "value": "${BROKER_DB_USER}"
+    },
+    ".properties.db_password": {
+      "value": {
+        "secret": "${BROKER_DB_USER_PASSWORD}"
+      },
+    },
+    ".properties.db_port": {
+      "value": "3306",
+    },
+    ".properties.ca_cert": {
+      "value": null
+    },
+    ".properties.client_cert": {
+      "value": null
+    },
+    ".properties.client_key": {
+      "value": null
+    }
+  }
+}

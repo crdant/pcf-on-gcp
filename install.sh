@@ -162,11 +162,11 @@ cloud_foundry () {
   SSL_CERT=`cat ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
 
   # looks funny, but it keeps us from polluting the environment
-  CF_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  CF_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   configure_networks_azs "p-bosh" "${CF_NETWORK_SETTINGS}"
 
   # looks funny, but it keeps us from polluting the environment
-  PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY; envsubst < api-calls/elastic_runtime_properties.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY`
+  PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAIN; envsubst < api-calls/elasic-runtime-properties.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAINt`
   set_properties "cf" "${PROPERTIES_JSON}"
 
   set the load balancers resource configuration
@@ -202,7 +202,7 @@ mysql () {
   stage_product "p-mysql"
   MYSQL_GUID=`product_guid "p-mysql"`
 
-  MYSQL_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  MYSQL_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   configure_networks_azs "p-mysql" "${MYSQL_NETWORK_SETTINGS}"
 }
 
@@ -216,7 +216,7 @@ rabbit () {
   stage_product "p-rabbitmq"
   RABBIT_GUID=`product_guid "p-rabbitmq"`
 
-  RABBIT_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  RABBIT_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   configure_networks_azs "p-rabbitmq" "${RABBIT_NETWORK_SETTINGS}"
 }
 
@@ -230,7 +230,7 @@ redis () {
   stage_product "p-redis"
   REDIS_GUID=`product_guid "p-redis"`
 
-  REDIS_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  REDIS_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   configure_networks_azs "p-redis" "${REDIS_NETWORK_SETTINGS}"
 }
 
@@ -244,23 +244,32 @@ spring_cloud_services () {
   stage_product "p-spring-cloud-services"
   SCS_GUID=`product_guid "p-spring-cloud-services"`
 
-  SCS_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  SCS_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   configure_networks_azs "p-spring-cloud-services" "${SCS_NETWORK_SETTINGS}"
 }
 
 service_broker () {
-  # download the broker and make it available
-  accept_eula "gcp-service-broker" "${GCP_VERSION}" "yes"
-  echo "Downloading GCP Service Broker..."
-  tile_file=`download_tile "gcp-service-broker" "${GCP_VERSION}"`
-  echo "Uploading GCP Service Broker..."
-  upload_tile $tile_file
-  echo "Staging GCP Service Broker..."
-  stage_product "gcp-service-broker"
+  # # download the broker and make it available
+  # accept_eula "gcp-service-broker" "${GCP_VERSION}" "yes"
+  # echo "Downloading GCP Service Broker..."
+  # tile_file=`download_tile "gcp-service-broker" "${GCP_VERSION}"`
+  # echo "Uploading GCP Service Broker..."
+  # upload_tile $tile_file
+  # echo "Staging GCP Service Broker..."
+  # stage_product "gcp-service-broker"
   GCP_GUID=`product_guid "gcp-service-broker"`
 
-  GCP_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/director_networks_azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
-  configure_networks_azs "p-spring-cloud-services" "${GCP_NETWORK_SETTINGS}"
+  CLIENT_KEY=`cat "${KEYDIR}/gcp-service-broker-db-client.key"`
+  SERVER_KEY=`cat "${KEYDIR}/gcp-service-broker-db-server.key"`
+  SERVER_CERT=`cat "${KEYDIR}/gcp-service-broker-db-server.crt"`
+  SERVICE_ACCOUNT_CREDENTIALS=`cat "${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json"`
+
+  GCP_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  configure_networks_azs "gcp-service-broker" "${GCP_NETWORK_SETTINGS}"
+
+  PROPERTIES_JSON=`export SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY SERVER_KEY SERVER_CERT ; envsubst < api-calls/gcp-service-broker-properties.json ; unset SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY SERVER_KEY SERVER_CERT`
+  set_properties "cf" "${PROPERTIES_JSON}"
+
 }
 
 gemfire () {
