@@ -18,13 +18,13 @@
       "value": "3306",
     },
     ".properties.ca_cert": {
-      "value": null
+      "value": "${SERVER_CERT}"
     },
     ".properties.client_cert": {
-      "value": null
+      "value": "${CLIENT_CERT}"
     },
     ".properties.client_key": {
-      "value": null
+      "value": "${CLIENT_KEY}"
     }
   }
 }

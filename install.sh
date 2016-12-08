@@ -260,14 +260,14 @@ service_broker () {
   GCP_GUID=`product_guid "gcp-service-broker"`
 
   CLIENT_KEY=`cat "${KEYDIR}/gcp-service-broker-db-client.key"`
-  SERVER_KEY=`cat "${KEYDIR}/gcp-service-broker-db-server.key"`
+  CLIENT_CERT=`cat "${KEYDIR}/gcp-service-broker-db-client.crt"`
   SERVER_CERT=`cat "${KEYDIR}/gcp-service-broker-db-server.crt"`
   SERVICE_ACCOUNT_CREDENTIALS=`cat "${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json"`
 
   GCP_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   configure_networks_azs "gcp-service-broker" "${GCP_NETWORK_SETTINGS}"
 
-  PROPERTIES_JSON=`export SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY SERVER_KEY SERVER_CERT ; envsubst < api-calls/gcp-service-broker-properties.json ; unset SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY SERVER_KEY SERVER_CERT`
+  PROPERTIES_JSON=`export SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY CLIENT_CERT SERVER_CERT ; envsubst < api-calls/gcp-service-broker-properties.json ; unset SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY CLIENT_CERT SERVER_CERT`
   set_properties "cf" "${PROPERTIES_JSON}"
 
 }
