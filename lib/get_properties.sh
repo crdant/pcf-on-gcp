@@ -1,4 +1,4 @@
-# set product properties on operations manager
+# get product properties on operations manager
 
 get_properties () {
   product=$1
