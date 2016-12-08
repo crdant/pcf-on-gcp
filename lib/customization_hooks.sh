@@ -6,3 +6,7 @@
 update_root_dns () {
   true
 }
+
+overrides () {
+  true
+}

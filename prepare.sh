@@ -3,8 +3,6 @@
 
 BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
-env
-
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/setup.sh"
@@ -332,6 +330,8 @@ SQL
 START_TIMESTAMP=`date`
 START_SECONDS=`date +%s`
 echo "Started preparing Google Cloud Platform project ${PROJECT} to install Cloud Foundry at ${START_TIMESTAMP}..."
+env
+overrides
 setup
 network
 security
