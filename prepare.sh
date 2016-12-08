@@ -11,8 +11,8 @@ env
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/random_phrase.sh"
 . "${BASEDIR}/lib/generate_passphrase.sh"
-. "${BASEDIR}/lib/product_guid.sh"
-. "${BASEDIR}/lib/configure_networks_azs.sh"
+. "${BASEDIR}/lib/guid.sh"
+. "${BASEDIR}/lib/networks_azs.sh"
 
 network () {
   # create a network (parameterize the network name and project later)
