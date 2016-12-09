@@ -14,12 +14,11 @@ get_resources () {
 set_resources () {
   product=$1
   job=$2
-  resources=$3
+  resources=`echo "${3}" | jq -c '.'`
 
   login_ops_manager > /dev/null
   product_guid=`product_guid $product`
   job_guid=`job_guid $product $job`
-  set -o xtrace
-  curl -q --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${product_guid}/jobs/${job_guid}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${resources}"
-  unset xtrace
+
+  curl -qsf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${product_guid}/jobs/${job_guid}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${resources}"
 }
