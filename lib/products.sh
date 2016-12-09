@@ -1,5 +1,13 @@
-# download a product from pivnet (assumes EULA has been accepted)
-#    outputs the pathname of the downloaded file
+# functions for working with products in the Ops Manager API
+
+product_available () {
+  product=$1
+  version=$2
+
+  login_ops_manager > /dev/null
+  available=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"`
+  test -z `echo ${available} | jq ". [] | select ( .name = \"$product\" ) .product_version | select ( startswith(\"$version\") )"`
+}
 
 download_tile () {
   product=$1
@@ -35,4 +43,33 @@ download_addon () {
   fi
 
   echo $addon_file
+}
+
+upload_tile () {
+  product_file=$1
+
+  login_ops_manager > /dev/null
+  curl -q --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -F "product[file]=@${product_file}"
+
+}
+
+upload_addon () {
+  product_file=$1
+
+  director_public_ip=`gcloud --format=json compute --project ${PROJECT} instances list --filter='tags.items:director' | jq --raw-output '. [] .networkInterfaces [] .accessConfigs [] | select ( .name="External NAT" ) .natIP'`
+  echo "Upload not yet implememented. You need to run (something like) the following: "
+  echo "   scp -i ${KEYDIR}/vcap-key $product_file vcap@$director_public_ip:$product_file"
+}
+
+stage_product () {
+  product=$1
+
+  login_ops_manager > /dev/null
+
+  available_product=`curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"$product\" )"`
+  product_name=`echo $available_product | jq --raw-output ".name"`
+  available_version=`echo $available_product | jq --raw-output ".product_version"`
+  curl -qsf --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$product_name\", \"product_version\": \"${available_version}\"}"
 }

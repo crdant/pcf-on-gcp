@@ -3,18 +3,14 @@
 
 BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
-env
-
+. "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/eula.sh"
-. "${BASEDIR}/lib/download_product.sh"
-. "${BASEDIR}/lib/upload_product.sh"
-. "${BASEDIR}/lib/stage_product.sh"
+. "${BASEDIR}/lib/products.sh"
 . "${BASEDIR}/lib/guid.sh"
-
-. "${BASEDIR}/lib/configure_networks_azs.sh"
+. "${BASEDIR}/lib/networks_azs.sh"
 . "${BASEDIR}/lib/properties.sh"
 . "${BASEDIR}/lib/resources.sh"
 
@@ -148,11 +144,15 @@ products () {
 }
 
 cloud_foundry () {
-  accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
-  echo "Downloading Cloud Foundry Elastic Runtime..."
-  tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
-  echo "Uploading Cloud Foundry Elastic Runtime..."
-  upload_tile $tile_file
+  if [ ! $(product_available "cf" ${PCF_VERSION}) ] ; then
+    accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
+    echo "Downloading Cloud Foundry Elastic Runtime..."
+    tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
+    echo "Uploading Cloud Foundry Elastic Runtime..."
+    upload_tile $tile_file
+  else
+    echo "Cloud Foundry version ${PCF_VERSION} is already available in Operations Manager at ${OPS_MANAGER_FQDN}"
+  fi
   echo "Staging Cloud Foundry Elastic Runtime..."
   stage_product "cf"
 
@@ -163,10 +163,10 @@ cloud_foundry () {
 
   # looks funny, but it keeps us from polluting the environment
   CF_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
-  configure_networks_azs "p-bosh" "${CF_NETWORK_SETTINGS}"
+  set_networks_azs "cf" "${CF_NETWORK_SETTINGS}"
 
   # looks funny, but it keeps us from polluting the environment
-  PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAIN; envsubst < api-calls/elasic-runtime-properties.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAINt`
+  PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAIN; envsubst < api-calls/elastic-runtime-properties.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAINt`
   set_properties "cf" "${PROPERTIES_JSON}"
 
   # set the load balancers resource configuration
@@ -183,75 +183,80 @@ cloud_foundry () {
   BRAIN_RESOURCES=`get_resources cf diego_brain`
   BRAIN_LBS="[ \"tcp:$SSH_LOAD_BALANCER_NAME\" ]"
   BRAIN_RESOURCES=`echo $BRAIN_RESOURCES | jq ".elb_names = $BRAIN_LBS"`
-  set_resources cf tcp_router "${BRAIN_RESOURCES}"
+  set_resources cf diego_brain "${BRAIN_RESOURCES}"
 }
 
 mysql () {
-  accept_eula "p-mysql" "${MYSQL_VERSION}" "yes"
-  echo "Downloading MySQL Service..."
-  tile_file=`download_tile "p-mysql" "${MYSQL_VERSION}"`
-  echo "Uploading MySQL Service..."
-  upload_tile $tile_file
+  if [ ! $(product_available "p-mysql" ${MYSQL_VERSION}) ] ; then
+    accept_eula "p-mysql" "${MYSQL_VERSION}" "yes"
+    echo "Downloading MySQL Service..."
+    tile_file=`download_tile "p-mysql" "${MYSQL_VERSION}"`
+    echo "Uploading MySQL Service..."
+    upload_tile $tile_file
+  fi
   echo "Staging MySQL Service..."
   stage_product "p-mysql"
-  MYSQL_GUID=`product_guid "p-mysql"`
 
   MYSQL_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
-  configure_networks_azs "p-mysql" "${MYSQL_NETWORK_SETTINGS}"
+  set_networks_azs "p-mysql" "${MYSQL_NETWORK_SETTINGS}"
 }
 
 rabbit () {
-  accept_eula "pivotal-rabbitmq-service" "${RABBIT_VERSION}" "yes"
-  echo "Downloading Rabbit MQ Service..."
-  tile_file=`download_tile "pivotal-rabbitmq-service" "${RABBIT_VERSION}"`
-  echo "Uploading Rabbit MQ Service..."
-  upload_tile $tile_file
+  if [ ! $(product_available "pivotal-rabbitmq-service" ${RABBIT_VERSION}) ] ; then
+    accept_eula "pivotal-rabbitmq-service" "${RABBIT_VERSION}" "yes"
+    echo "Downloading Rabbit MQ Service..."
+    tile_file=`download_tile "pivotal-rabbitmq-service" "${RABBIT_VERSION}"`
+    echo "Uploading Rabbit MQ Service..."
+    upload_tile $tile_file
+  fi
   echo "Staging Rabbit MQ Service..."
   stage_product "p-rabbitmq"
-  RABBIT_GUID=`product_guid "p-rabbitmq"`
 
   RABBIT_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
-  configure_networks_azs "p-rabbitmq" "${RABBIT_NETWORK_SETTINGS}"
+  set_networks_azs "p-rabbitmq" "${RABBIT_NETWORK_SETTINGS}"
 }
 
 redis () {
-  accept_eula "p-redis" "${REDIS_VERSION}" "yes"
-  echo "Downloading REDIS Service..."
-  tile_file=`download_tile "p-redis" "${REDIS_VERSION}"`
-  echo "Uploading REDIS Service..."
-  upload_tile $tile_file
+  if [ ! $(product_available "p-redis" ${REDIS_VERSION}) ] ; then
+    accept_eula "p-redis" "${REDIS_VERSION}" "yes"
+    echo "Downloading REDIS Service..."
+    tile_file=`download_tile "p-redis" "${REDIS_VERSION}"`
+    echo "Uploading REDIS Service..."
+    upload_tile $tile_file
+  fi
   echo "Staging REDIS Service..."
   stage_product "p-redis"
-  REDIS_GUID=`product_guid "p-redis"`
 
   REDIS_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
-  configure_networks_azs "p-redis" "${REDIS_NETWORK_SETTINGS}"
+  set_networks_azs "p-redis" "${REDIS_NETWORK_SETTINGS}"
 }
 
 spring_cloud_services () {
-  accept_eula "p-spring-cloud-services" "${SCS_VERSION}" "yes"
-  echo "Downloading Spring Cloud Services..."
-  tile_file=`download_tile "p-spring-cloud-services" "${SCS_VERSION}"`
-  echo "Uploading Spring Cloud Services..."
-  upload_tile $tile_file
+  if [ ! $(product_available "p-spring-cloud-services" ${SCS_VERSION}) ] ; then
+    accept_eula "p-spring-cloud-services" "${SCS_VERSION}" "yes"
+    echo "Downloading Spring Cloud Services..."
+    tile_file=`download_tile "p-spring-cloud-services" "${SCS_VERSION}"`
+    echo "Uploading Spring Cloud Services..."
+    upload_tile $tile_file
+  fi
   echo "Staging Spring Cloud Services..."
   stage_product "p-spring-cloud-services"
-  SCS_GUID=`product_guid "p-spring-cloud-services"`
 
   SCS_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
-  configure_networks_azs "p-spring-cloud-services" "${SCS_NETWORK_SETTINGS}"
+  set_networks_azs "p-spring-cloud-services" "${SCS_NETWORK_SETTINGS}"
 }
 
 service_broker () {
-  # download the broker and make it available
-  accept_eula "gcp-service-broker" "${GCP_VERSION}" "yes"
-  echo "Downloading GCP Service Broker..."
-  tile_file=`download_tile "gcp-service-broker" "${GCP_VERSION}"`
-  echo "Uploading GCP Service Broker..."
-  upload_tile $tile_file
+  if [ ! $(product_available "gcp-service-broker" ${GCP_VERSION_NUM}) ] ; then
+    # download the broker and make it available
+    accept_eula "gcp-service-broker" "${GCP_VERSION}" "yes"
+    echo "Downloading GCP Service Broker..."
+    tile_file=`download_tile "gcp-service-broker" "${GCP_VERSION}"`
+    echo "Uploading GCP Service Broker..."
+    upload_tile $tile_file
+  fi
   echo "Staging GCP Service Broker..."
   stage_product "gcp-service-broker"
-  GCP_GUID=`product_guid "gcp-service-broker"`
 
   # since sed works a line at a time, translate newlines to a character that isn't Base64, then
   # replace that character with an escaped newline
@@ -262,7 +267,7 @@ service_broker () {
   BROKER_DB_HOST=`cat "${TMPDIR}/gcp-service-broker-db.ip"`
 
   GCP_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
-  configure_networks_azs "gcp-service-broker" "${GCP_NETWORK_SETTINGS}"
+  set_networks_azs "gcp-service-broker" "${GCP_NETWORK_SETTINGS}"
 
   PROPERTIES_JSON=`export SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY CLIENT_CERT SERVER_CERT ; envsubst < api-calls/gcp-service-broker-properties.json ; unset SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY CLIENT_CERT SERVER_CERT`
   set_properties "gcp-service-broker" "${PROPERTIES_JSON}"
@@ -270,22 +275,26 @@ service_broker () {
 }
 
 gemfire () {
-  accept_eula "p-gemfire" "${GEM_VERSION}" "yes"
-  echo "Downloading Gemfire..."
-  tile_file=`download_tile "p-gemfire" "${GEM_VERSION}"`
-  echo "Uploading Gemfire..."
-  upload_tile $tile_file
+  if [ ! product_available "p-gemfire" ${GEM_VERSION} ] ; then
+    accept_eula "p-gemfire" "${GEM_VERSION}" "yes"
+    echo "Downloading Gemfire..."
+    tile_file=`download_tile "p-gemfire" "${GEM_VERSION}"`
+    echo "Uploading Gemfire..."
+    upload_tile $tile_file
+  fi
   echo "Staging Gemfire..."
   stage_product "p-gemfire"
   GEM_GUID=`product_guid "p-gemfire"`
 }
 
 concourse () {
-  accept_eula "p-concourse" "${CONCOURSE_VERSION}" "yes"
-  echo "Downloading Concourse..."
-  tile_file=`download_tile "p-concourse" "${CONCOURSE_VERSION}"`
-  echo "Uploading Concourse..."
-  upload_tile $tile_file
+  if [ ! product_available "p-concourse" ${CONCOURSE_VERSION} ] ; then
+    accept_eula "p-concourse" "${CONCOURSE_VERSION}" "yes"
+    echo "Downloading Concourse..."
+    tile_file=`download_tile "p-concourse" "${CONCOURSE_VERSION}"`
+    echo "Uploading Concourse..."
+    upload_tile $tile_file
+  fi
   echo "Staging Concourse..."
   stage_product "p-concourse"
   CONCOURSE_GUID=`product_guid "p-concourse"`
@@ -304,6 +313,7 @@ START_SECONDS=`date +%s`
 init
 parse_args $@
 env
+overrides
 echo "Started installing Cloud Foundry components in Google Cloud Platform project ${PROJECT} at ${START_TIMESTAMP}..."
 setup
 login_ops_manager
