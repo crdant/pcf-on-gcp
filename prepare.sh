@@ -9,6 +9,7 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/random_phrase.sh"
 . "${BASEDIR}/lib/generate_passphrase.sh"
+. "${BASEDIR}/lib/eula.sh"
 . "${BASEDIR}/lib/guid.sh"
 . "${BASEDIR}/lib/networks_azs.sh"
 
@@ -221,6 +222,7 @@ ops_manager () {
   OPS_MANAGER_YML="${TMPDIR}/ops-manager-on-gcp.yml"
 
   # download the Ops Manager YAML file to find the image we're using
+  accept_eula "ops-manager" "${OPS_MANAGER_VERSION}" "yes"
   echo "Finding the image location for the Pivotal release image for operations manager."
   FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $OPS_MANAGER_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$OPS_MANAGER_VERSION\" ) ._links .product_files .href"`
   DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] | select( .name | test ("GCP.*yml") ) ._links .download .href'`
