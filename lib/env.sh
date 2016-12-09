@@ -28,14 +28,14 @@ env () {
   PACKAGES_STORAGE_BUCKET="packages-pcf-${DOMAIN_TOKEN}"
   RESOURCES_STORAGE_BUCKET="resources-pcf-${DOMAIN_TOKEN}"
 
-  OPS_MANAGER_VERSION="1.8.10"
+  OPS_MANAGER_VERSION="1.8.11"
   OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
-  PCF_VERSION="1.8.18"
-  MYSQL_VERSION="1.8.0-edge.15"
-  RABBIT_VERSION="1.7.6"
-  REDIS_VERSION="1.6.2"
-  SCS_VERSION="1.3.0"
-  GCP_VERSION="2.0.1 (BETA)"
+  PCF_VERSION="1.8.20"
+  MYSQL_VERSION="1.8.0"
+  RABBIT_VERSION="1.7.8"
+  REDIS_VERSION="1.6.3"
+  SCS_VERSION="1.3.1"
+  GCP_VERSION="2.1.1 (BETA)"
   GCP_VERSION_TOKEN=`echo ${GCP_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '(' | tr '[:upper:]' '[:lower:]'`
   GCP_VERSION_NUM=`echo ${GCP_VERSION} | sed 's/[^0-9.]*//g'`
   GEM_VERSION="1.6.3"
@@ -48,7 +48,7 @@ env () {
   TCP_LOAD_BALANCER_NAME="pcf-tcp-router-${DOMAIN_TOKEN}"
 
   BROKER_DB_USER="pcf"
-  
+
   # set variables for passwords if they are available
   if [ -e ${PASSWORD_LIST} ] ; then
     . ${PASSWORD_LIST}
