@@ -144,7 +144,7 @@ products () {
 }
 
 cloud_foundry () {
-  if [ ! $(product_available "cf" ${PCF_VERSION}) ] ; then
+  if product_not_available "cf" "${PCF_VERSION}"] ; then
     accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
     echo "Downloading Cloud Foundry Elastic Runtime..."
     tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
@@ -187,7 +187,7 @@ cloud_foundry () {
 }
 
 mysql () {
-  if [ ! $(product_available "p-mysql" ${MYSQL_VERSION}) ] ; then
+  if product_not_available "p-mysql" "${MYSQL_VERSION}" ; then
     accept_eula "p-mysql" "${MYSQL_VERSION}" "yes"
     echo "Downloading MySQL Service..."
     tile_file=`download_tile "p-mysql" "${MYSQL_VERSION}"`
@@ -202,7 +202,7 @@ mysql () {
 }
 
 rabbit () {
-  if [ ! $(product_available "pivotal-rabbitmq-service" ${RABBIT_VERSION}) ] ; then
+  if product_not_available "pivotal-rabbitmq-service" "${RABBIT_VERSION}" ; then
     accept_eula "pivotal-rabbitmq-service" "${RABBIT_VERSION}" "yes"
     echo "Downloading Rabbit MQ Service..."
     tile_file=`download_tile "pivotal-rabbitmq-service" "${RABBIT_VERSION}"`
@@ -217,7 +217,7 @@ rabbit () {
 }
 
 redis () {
-  if [ ! $(product_available "p-redis" ${REDIS_VERSION}) ] ; then
+  if product_not_available "p-redis" "${REDIS_VERSION}" ; then
     accept_eula "p-redis" "${REDIS_VERSION}" "yes"
     echo "Downloading REDIS Service..."
     tile_file=`download_tile "p-redis" "${REDIS_VERSION}"`
@@ -232,7 +232,7 @@ redis () {
 }
 
 spring_cloud_services () {
-  if [ ! $(product_available "p-spring-cloud-services" ${SCS_VERSION}) ] ; then
+  if product_not_available "p-spring-cloud-services" "${SCS_VERSION}" ; then
     accept_eula "p-spring-cloud-services" "${SCS_VERSION}" "yes"
     echo "Downloading Spring Cloud Services..."
     tile_file=`download_tile "p-spring-cloud-services" "${SCS_VERSION}"`
@@ -247,7 +247,7 @@ spring_cloud_services () {
 }
 
 service_broker () {
-  if [ ! $(product_available "gcp-service-broker" ${GCP_VERSION_NUM}) ] ; then
+  if product_not_available "gcp-service-broker" "${GCP_VERSION_NUM}" ; then
     # download the broker and make it available
     accept_eula "gcp-service-broker" "${GCP_VERSION}" "yes"
     echo "Downloading GCP Service Broker..."
@@ -275,7 +275,7 @@ service_broker () {
 }
 
 gemfire () {
-  if [ ! product_available "p-gemfire" ${GEM_VERSION} ] ; then
+  if product_not_available "p-gemfire" "${GEM_VERSION}" ; then
     accept_eula "p-gemfire" "${GEM_VERSION}" "yes"
     echo "Downloading Gemfire..."
     tile_file=`download_tile "p-gemfire" "${GEM_VERSION}"`
@@ -288,7 +288,7 @@ gemfire () {
 }
 
 concourse () {
-  if [ ! product_available "p-concourse" ${CONCOURSE_VERSION} ] ; then
+  if product_not_available "p-concourse" "${CONCOURSE_VERSION}" ; then
     accept_eula "p-concourse" "${CONCOURSE_VERSION}" "yes"
     echo "Downloading Concourse..."
     tile_file=`download_tile "p-concourse" "${CONCOURSE_VERSION}"`
@@ -312,7 +312,7 @@ START_TIMESTAMP=`date`
 START_SECONDS=`date +%s`
 init
 parse_args $@
-env
+prepare_env
 overrides
 echo "Started installing Cloud Foundry components in Google Cloud Platform project ${PROJECT} at ${START_TIMESTAMP}..."
 setup

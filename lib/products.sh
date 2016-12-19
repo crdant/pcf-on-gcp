@@ -1,12 +1,36 @@
 # functions for working with products in the Ops Manager API
 
-product_available () {
+available_products () {
+  login_ops_manager > /dev/null
+  curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
+}
+
+staged_products () {
+  login_ops_manager > /dev/null
+  curl -qsf  --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
+}
+
+deployed_products () {
+  login_ops_manager > /dev/null
+  curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/deployed/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
+}
+
+product_not_available () {
   product=$1
   version=$2
 
   login_ops_manager > /dev/null
-  available=`curl -qsf --insecure "https://manager.${SUBDOMAIN}/api/v0/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"`
-  test -z `echo ${available} | jq ". [] | select ( .name = \"$product\" ) .product_version | select ( startswith(\"$version\") )"`
+  available=`available_products`
+  test -n `echo ${available} | jq ". [] | select ( .name = \"$product\" ) .product_version | select ( startswith(\"$version\") )"`
+}
+
+product_not_staged () {
+  product=$1
+  version=$2
+
+  login_ops_manager > /dev/null
+  staged=`staged_products`
+  test -n `echo ${staged} | jq ". [] | select ( .name = \"$product\" ) .product_version | select ( startswith(\"$version\") )"`
 }
 
 download_tile () {
