@@ -11,7 +11,7 @@ validate_login () {
 }
 
 do_login () {
-  uaac target "${OPS_MANAGER_API_ENDPOINT}/uaa" --skip-ssl-validation
+  uaac target "${OPS_MANAGER_FQDN}/uaa" --skip-ssl-validation
   uaac token owner get opsman admin --secret='' --password="${ADMIN_PASSWORD}"
   UAA_ACCESS_TOKEN=`uaac context | grep "access_token" | sed '1s/^[ \t]*access_token: //'`
 }
