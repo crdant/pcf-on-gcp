@@ -1,6 +1,13 @@
 # make the environment for these scripts available in your current shell
+if [ -n "$ZSH_VERSION" ]; then
+  BASEDIR=`dirname ${(%):-%N}`
+elif [ -n "$BASH_VERSION" ]; then
+  BASEDIR=`dirname ${BASH_SOURCE[0]}`
+else
+  # doesn't likely work but it's something to set it as
+  BASEDIR=`dirname $0`
+fi
 
-BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
@@ -19,6 +26,7 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/unlock_ops_manager.sh"
 prepare_env
 overrides
+
 
 export ACCOUNT
 export PROJECT
