@@ -49,11 +49,10 @@ security () {
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/compute.networkAdmin" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/compute.storageAdmin" --no-user-output-enabled
 
-  # setup VCAP SSH for all boxen, this will erase existing SSH keys (FIX!)
+  # setup VCAP SSH for all boxen
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/vcap-key -b 4096 -C vcap@local > /dev/null
-  sed -i.gcp '1s/^/vcap: /' ${KEYDIR}/vcap-key.pub
-  gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file sshKeys=${KEYDIR}/vcap-key.pub --no-user-output-enabled
-  mv ${KEYDIR}/vcap-key.pub.gcp ${KEYDIR}/vcap-key.pub
+  gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file --no-user-output-enabled \
+  sshKeys=<( gcloud compute project-info describe --format=json | jq -r '.commonInstanceMetadata.items[] | select(.key == "sshKeys") | .value' & echo "bosh:$(cat ${KEYDIR}/vcap-key.pub)" )
 
   passwords
 
@@ -65,11 +64,14 @@ passwords () {
   DECRYPTION_PASSPHRASE=`generate_passphrase 5`
   DB_ROOT_PASSWORD=`generate_passphrase 3`
   BROKER_DB_USER_PASSWORD=`generate_passphrase 3`
+  RABBIT_ADMIN_PASSWORD=`generate_passphrase 4`
+
   cat <<PASSWORD_LIST > "${PASSWORD_LIST}"
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 DECRYPTION_PASSPHRASE=${DECRYPTION_PASSPHRASE}
 DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
 BROKER_DB_USER_PASSWORD=${BROKER_DB_USER_PASSWORD}
+RABBIT_ADMIN_PASSWORD=${RABBIT_ADMIN_PASSWORD}
 PASSWORD_LIST
   chmod 700 "${PASSWORD_LIST}"
 }
