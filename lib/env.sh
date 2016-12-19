@@ -1,6 +1,6 @@
 # common environmnet configuration for these scripts
 
-env () {
+prepare_env () {
   REGION_1="us-east1"
   STORAGE_LOCATION="us"
   AVAILABILITY_ZONE_1="${REGION_1}-b"

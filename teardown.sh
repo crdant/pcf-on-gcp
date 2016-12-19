@@ -6,7 +6,7 @@
 
 BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
-env
+prepare_env
 
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"
@@ -160,7 +160,7 @@ network () {
 
 START_TIMESTAMP=`date`
 START_SECONDS=`date +%s`
-env
+prepare_env
 echo "Started tearing down Cloud Foundry installation in Google Cloud Platform project ${PROJECT} at ${START_TIMESTAMP}..."
 setup
 vms

@@ -3,8 +3,22 @@
 BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/personal.sh"
-
-env
+. "${BASEDIR}/lib/customization_hooks.sh"
+. "${BASEDIR}/lib/env.sh"
+. "${BASEDIR}/lib/eula.sh"
+. "${BASEDIR}/lib/generate_passphrase.sh"
+. "${BASEDIR}/lib/guid.sh"
+. "${BASEDIR}/lib/jobs.sh"
+. "${BASEDIR}/lib/login_ops_manager.sh"
+. "${BASEDIR}/lib/networks_azs.sh"
+. "${BASEDIR}/lib/products.sh"
+. "${BASEDIR}/lib/properties.sh"
+. "${BASEDIR}/lib/random_phrase.sh"
+. "${BASEDIR}/lib/resources.sh"
+. "${BASEDIR}/lib/setup.sh"
+. "${BASEDIR}/lib/unlock_ops_manager.sh"
+prepare_env
+overrides
 
 export ACCOUNT
 export PROJECT
@@ -58,3 +72,4 @@ export ADMIN_PASSWORD
 export DECRYPTION_PASSPHRASE
 export DB_ROOT_PASSWORD
 export BROKER_DB_USER_PASSWORD
+export RABBIT_ADMIN_PASSWORD

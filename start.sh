@@ -32,7 +32,7 @@ bosh_cck () {
   echo "Fill in an SSH to the ops manager and execute bosh cck (or maybe just do it from here)"
 }
 
-env
+prepare_env
 setup
 ops_manager
 

@@ -334,7 +334,7 @@ SQL
 START_TIMESTAMP=`date`
 START_SECONDS=`date +%s`
 echo "Started preparing Google Cloud Platform project ${PROJECT} to install Cloud Foundry at ${START_TIMESTAMP}..."
-env
+prepare_env
 overrides
 setup
 network
