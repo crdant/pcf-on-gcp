@@ -8,7 +8,7 @@
   1. A [Pivotal Network](https://network.pivotal.io) account and API token.
   1. The following Google APIs enabled: [Compute Engine](https://console.developers.google.com/apis/api/compute_component/overview),
      [IAM](https://console.cloud.google.com/apis/api/iam.googleapis.com/overview), [Cloud Storage](https://console.developers.google.com/apis/api/storage-component-json.googleapis.com/overview),
-     [DNS](https://console.cloud.google.com/apis/api/iam.googleapis.com/overview), and [Cloud SQL](https://console.developers.google.com/apis/api/sqladmin-json.googleapis.com/overview)
+     [DNS](https://console.cloud.google.com/apis/api/dns.googleapis.com/overview), and [Cloud SQL](https://console.developers.google.com/apis/api/sqladmin-json.googleapis.com/overview).
 
 ## Inputs
 
