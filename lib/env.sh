@@ -10,7 +10,7 @@ prepare_env () {
   DOMAIN_TOKEN=`echo ${DOMAIN} | tr . -`
   SUBDOMAIN="gcp.${DOMAIN}"
   DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
-  DNS_TTL=300
+  DNS_TTL=60
   CIDR="10.0.0.0/20"
   ALL_INTERNET="0.0.0.0/0"
   KEYDIR="${BASEDIR}/keys"
