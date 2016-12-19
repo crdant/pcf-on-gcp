@@ -2,17 +2,17 @@
 
 available_products () {
   login_ops_manager > /dev/null
-  curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
+  curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
 }
 
 staged_products () {
   login_ops_manager > /dev/null
-  curl -qsf  --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
+  curl -qsLf  --insecure "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
 }
 
 deployed_products () {
   login_ops_manager > /dev/null
-  curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/deployed/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
+  curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/deployed/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"
 }
 
 product_not_available () {
@@ -42,10 +42,10 @@ download_tile () {
   tile_file="$TMPDIR/${product}-${version_token}.pivotal"
 
   if [ ! -f $tile_file ] ; then
-    files_url=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .product_files .href"`
-    download_post_url=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $files_url | jq --raw-output ".product_files[] | select( .aws_object_key | endswith(\"pivotal\") ) ._links .download .href"`
-    download_url=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $download_post_url -w "%{url_effective}\n"`
-    curl -qsf -o $tile_file $download_url
+    files_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .product_files .href"`
+    download_post_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $files_url | jq --raw-output ".product_files[] | select( .aws_object_key | endswith(\"pivotal\") ) ._links .download .href"`
+    download_url=`curl -qsLf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $download_post_url -w "%{url_effective}\n"`
+    curl -qsLf -o $tile_file $download_url
   fi
 
   echo $tile_file
@@ -60,10 +60,10 @@ download_addon () {
   addon_file="$TMPDIR/${product}-${version_token}.tgz"
 
   if [ ! -f $addon_file ] ; then
-    files_url=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .product_files .href"`
-    download_post_url=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $files_url | jq --raw-output ".product_files[] | select( .aws_object_key | endswith(\"tgz\") ) ._links .download .href"`
-    download_url=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $download_post_url -w "%{url_effective}\n"`
-    curl -qsf -o $tile_file $download_url
+    files_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .product_files .href"`
+    download_post_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $files_url | jq --raw-output ".product_files[] | select( .aws_object_key | endswith(\"tgz\") ) ._links .download .href"`
+    download_url=`curl -qsLf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $download_post_url -w "%{url_effective}\n"`
+    curl -qsLf -o $tile_file $download_url
   fi
 
   echo $addon_file
@@ -91,9 +91,9 @@ stage_product () {
 
   login_ops_manager > /dev/null
 
-  available_product=`curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"$product\" )"`
+  available_product=`curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"$product\" )"`
   product_name=`echo $available_product | jq --raw-output ".name"`
   available_version=`echo $available_product | jq --raw-output ".product_version"`
-  curl -qsf --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+  curl -qsLf --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
     -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$product_name\", \"product_version\": \"${available_version}\"}"
 }

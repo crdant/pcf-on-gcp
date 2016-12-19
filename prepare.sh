@@ -226,10 +226,10 @@ ops_manager () {
   # download the Ops Manager YAML file to find the image we're using
   accept_eula "ops-manager" "${OPS_MANAGER_VERSION}" "yes"
   echo "Finding the image location for the Pivotal release image for operations manager."
-  FILES_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $OPS_MANAGER_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$OPS_MANAGER_VERSION\" ) ._links .product_files .href"`
-  DOWNLOAD_POST_URL=`curl -qsf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] | select( .aws_object_key | test (".*GCP.*yml") ) ._links .download .href'`
-  DOWNLOAD_URL=`curl -qsf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
-  IMAGE_URI=`curl -qsf "${DOWNLOAD_URL}" | grep ".us" | sed 's/us: //'`
+  FILES_URL=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $OPS_MANAGER_RELEASES_URL | jq --raw-output ".releases[] | select( .version == \"$OPS_MANAGER_VERSION\" ) ._links .product_files .href"`
+  DOWNLOAD_POST_URL=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $FILES_URL | jq --raw-output '.product_files[] | select( .aws_object_key | test (".*GCP.*yml") ) ._links .download .href'`
+  DOWNLOAD_URL=`curl -qsLf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $DOWNLOAD_POST_URL -w "%{url_effective}\n"`
+  IMAGE_URI=`curl -qsLf "${DOWNLOAD_URL}" | grep ".us" | sed 's/us: //'`
   IMAGE_SOURCE_URI="https://storage.googleapis.com/${IMAGE_URI}"
   echo "Located image at ${IMAGE_URI}"
 
@@ -264,7 +264,7 @@ ops_manager () {
 
   # this line looks a little funny, but it's to make sure we keep the passwords out of the environment
   SETUP_JSON=`export ADMIN_PASSWORD DECRYPTION_PASSPHRASE ; envsubst < api-calls/setup.json ; unset ADMIN_PASSWORD ; unset DECRYPTION_PASSPHRASE`
-  curl -qsf --insecure "${OPS_MANAGER_API_ENDPOINT}/setup" -X POST -H "Content-Type: application/json" -d "${SETUP_JSON}"
+  curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/setup" -X POST -H "Content-Type: application/json" -d "${SETUP_JSON}"
   echo "Operation manager configured. Your username is admin and password is ${ADMIN_PASSWORD}."
 
   # log in to the ops_manager so the script can manipulate it later
@@ -272,7 +272,7 @@ ops_manager () {
 
   # prepare for downloading products from the Pivotal Network
   echo "Providing Pivotal Network settings to Operations Manager..."
-  curl -qsf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/settings/pivotal_network_settings" \
+  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/settings/pivotal_network_settings" \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
       -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
   echo "Operations Manager installed and prepared for tile configruation. If you are using install.sh, be sure to create BOSH network gcp-${REGION_1}"

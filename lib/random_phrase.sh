@@ -6,13 +6,13 @@ adjective_file="$TMPDIR/adjectives.txt"
 noun_file="$TMPDIR/nouns.txt"
 
 if [ ! -f "${adjective_file}" ] ; then
-  curl -qsf -o "${adjective_file}" "${CF_CLI_GITHUB_RAW_ROOT}/util/words/dict/adjectives.txt"
+  curl -qsLf -o "${adjective_file}" "${CF_CLI_GITHUB_RAW_ROOT}/util/words/dict/adjectives.txt"
 fi
 adjective_lines=`wc -l $adjective_file | awk '{ print $1 }'`
 
 
 if [ ! -f "${noun_file}" ] ; then
-  curl -qsf -o "${noun_file}" "${CF_CLI_GITHUB_RAW_ROOT}/util/words/dict/nouns.txt"
+  curl -qsLf -o "${noun_file}" "${CF_CLI_GITHUB_RAW_ROOT}/util/words/dict/nouns.txt"
 fi
 noun_lines=`wc -l $noun_file | awk '{ print $1 }'`
 

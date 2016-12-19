@@ -5,7 +5,7 @@ get_networks_azs () {
 
   GUID=`product_guid $1`
   login_ops_manager > /dev/null
-  curl -qsf --insecure -X GET "${OPS_MANAGER_API_ENDPOINT}/staged/products/${GUID}/networks_and_azs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
+  curl -qsLf --insecure -X GET "${OPS_MANAGER_API_ENDPOINT}/staged/products/${GUID}/networks_and_azs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
     -H "Content-Type: application/json"
 }
 
