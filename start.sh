@@ -19,7 +19,10 @@ vms () {
 
 ops_manager () {
   # pause Ops Manager
-  gcloud compute --project "${PROJECT}" instances start "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --quiet
+  for instance in `gcloud compute --project ${PROJECT} instances list --filter='tags.items:pcf-opsmanager' --uri`; do
+    gcloud compute --project ${PROJECT} instances start "${instance}" --quiet &
+  done
+  sleep 120
   unlock_ops_manager
 }
 
