@@ -1,7 +1,5 @@
-# teardown PCF on GCP
-# currently handles only the resources that prepare.sh creates, and will fail due to dependencies if resources
-# created by OpsManager (or otherwise) that depend on these prerequisites still exist
-
+#!/usr/bin/env bash
+# get the status of all VMs running your cloud foundry instance
 BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
