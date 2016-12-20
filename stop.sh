@@ -19,7 +19,7 @@ vms () {
 ops_manager () {
   # pause Ops Manager
   for instance in `gcloud compute --project ${PROJECT} instances list --filter='tags.items:pcf-opsmanager' --uri`; do
-    gcloud compute --project ${PROJECT} instances stop "${instance}" --quiet &
+    gcloud compute --project ${PROJECT} instances stop "${instance}" --quiet 
   done
 }
 
