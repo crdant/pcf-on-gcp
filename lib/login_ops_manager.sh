@@ -2,7 +2,7 @@
 #    reference $UAA_ACCESS_TOKEN as the bearer token for API calls
 
 validate_login () {
-  status_code=`curl -qs -I --insecure "${OPS_MANAGER_API_ENDPOINT}/uaa/tokens_expiration"  -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"  -w "%{http_code}\n"`
+  status_code=`curl -qs -I --insecure "${OPS_MANAGER_FQDN}/uaa/tokens_expiration"  -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json"  -w "%{http_code}\n"`
   if [ "$status_code" = "401" ] ; then
     return 0
   else
