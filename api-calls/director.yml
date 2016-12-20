@@ -1,0 +1,18 @@
+{
+  "iaas_configuration": {
+    "project": "${PROJECT}",
+    "associated_service_account": "${SERVICE_ACCOUNT}"
+  },
+  "director_configuration": {
+    "ntp_servers_string": "us.pool.ntp.org",
+    "metrics_ip": null,
+    "resurrector_enabled": false,
+    "max_threads": null,
+    "database_type": "internal",
+    "blobstore_type": "local"
+  },
+  "security_configuration": {
+    "trusted_certificates": null,
+    "generate_vm_passwords": true
+  }
+}

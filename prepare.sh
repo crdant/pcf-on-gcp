@@ -43,11 +43,12 @@ security () {
 
   # create a service account and give it a key (parameterize later), not sure why it doesn't have a project specified but that seems right
   gcloud iam service-accounts create bosh-opsman-${DOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
-  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com  --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/editor" --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/compute.instanceAdmin" --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/compute.networkAdmin" --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/compute.storageAdmin" --no-user-output-enabled
+  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account ${SERVICE_ACCOUNT}  --no-user-output-enabled
+  # TO DO: the role for the project (editor below) should change
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/editor" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.instanceAdmin" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.networkAdmin" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.storageAdmin" --no-user-output-enabled
 
   # setup VCAP SSH for all boxen
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/vcap-key -b 4096 -C vcap@local > /dev/null
@@ -56,7 +57,7 @@ security () {
 
   passwords
 
-  echo "Created service account bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com and added SSH key to project (private key file: ${KEYDIR}/vcap-key)..."
+  echo "Created service account ${SERVICE_ACCOUNT} and added SSH key to project (private key file: ${KEYDIR}/vcap-key)..."
 }
 
 passwords () {
@@ -203,13 +204,13 @@ blobstore () {
   # create storage buckets for ERT file storage -- uncertain permissions are needed
   echo "Creating storage buckets for storing BLOBs..."
   gsutil mb -l ${STORAGE_LOCATION} gs://${BUILDPACKS_STORAGE_BUCKET}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://${BUILDPACKS_STORAGE_BUCKET}
+  gsutil acl ch -u ${SERVICE_ACCOUNT}:O gs://${BUILDPACKS_STORAGE_BUCKET}
   gsutil mb -l ${STORAGE_LOCATION} gs://${DROPLETS_STORAGE_BUCKET}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://${DROPLETS_STORAGE_BUCKET}
+  gsutil acl ch -u ${SERVICE_ACCOUNT}:O gs://${DROPLETS_STORAGE_BUCKET}
   gsutil mb -l ${STORAGE_LOCATION} gs://${PACKAGES_STORAGE_BUCKET}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://${PACKAGES_STORAGE_BUCKET}
+  gsutil acl ch -u ${SERVICE_ACCOUNT}:O gs://${PACKAGES_STORAGE_BUCKET}
   gsutil mb -l ${STORAGE_LOCATION} gs://${RESOURCES_STORAGE_BUCKET}
-  gsutil acl ch -u bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com:O gs://${RESOURCES_STORAGE_BUCKET}
+  gsutil acl ch -u ${SERVICE_ACCOUNT}:O gs://${RESOURCES_STORAGE_BUCKET}
   echo "Created storage buckets for storing elastic runtime BLOBs."
   echo "You will need the following values to configure the PCF tile in Operations Manager"
   echo "  Buildpack storage: ${BUILDPACKS_STORAGE_BUCKET}"
@@ -235,7 +236,7 @@ ops_manager () {
 
   # Ops Manager instance
   echo "Creating disk image for Operations Manager from the Pivotal provided image..."
-  gcloud compute --project "${PROJECT}" images create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}" --family "pcf-ops-manager" --description "Primary disk for Pivotal Cloud Foundry Operations Manager" --source-uri "${IMAGE_SOURCE_URI}" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" images create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}" --family "pcf-ops-manager" --description "Primary disk for Pivotal Cloud Foundry Operations Manager (v. ${OPS_MANAGER_VERSION})" --source-uri "${IMAGE_SOURCE_URI}" --no-user-output-enabled
   echo "Operations Manager image created."
 
   # make sure we can get to it
@@ -248,7 +249,7 @@ ops_manager () {
   echo "Updated Operations Manager DNS for ${OPS_MANAGER_FQDN} to ${OPS_MANAGER_ADDRESS}."
 
   echo "Creating Operations Manager instance..."
-  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com="https://www.googleapis.com/auth/cloud-platform" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes ${SERVICE_ACCOUNT}="https://www.googleapis.com/auth/cloud-platform" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/ubuntu-key -b 4096 -C ubuntu@local > /dev/null
   sed -i.gcp '1s/^/ubuntu: /' ${KEYDIR}/ubuntu-key.pub
   gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=${KEYDIR}/ubuntu-key.pub" --no-user-output-enabled
@@ -275,7 +276,13 @@ ops_manager () {
   curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/settings/pivotal_network_settings" \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
       -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
-  echo "Operations Manager installed and prepared for tile configruation. If you are using install.sh, be sure to create BOSH network gcp-${REGION_1}"
+  echo "Operations Manager installed and prepared for tile configruation. If you are using install.sh, be sure to create BOSH network ${DIRECTOR_NETWORK_NAME}"
+
+  echo "Configuring the BOSH Director (some settings are not done via the API)..."
+  DIRECTOR_SETTINGS=`export DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT; envsubst < api-calls/director.yml ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
+  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/properties" \
+      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${DIRECTOR_SETTINGS}"
+  echo "BOSH Director created"
 }
 
 cloud_foundry () {
