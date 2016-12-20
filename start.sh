@@ -1,6 +1,5 @@
-# teardown PCF on GCP
-# currently handles only the resources that prepare.sh creates, and will fail due to dependencies if resources
-# created by OpsManager (or otherwise) that depend on these prerequisites still exist
+#!/usr/bin/env bash
+# start instances running at the IaaS level
 
 BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/env.sh"
@@ -16,7 +15,6 @@ vms () {
   for instance in `gcloud compute --project ${PROJECT} instances list --filter='tags.items:pcf-vms' --uri`; do
       gcloud compute --project ${PROJECT} instances start "${instance}" --quiet &
   done
-
 }
 
 ops_manager () {
