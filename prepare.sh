@@ -90,9 +90,9 @@ ssl_certs () {
   ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
-  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${TMPDIR}/${DOMAIN_TOKEN}.key" -out "${TMPDIR}/${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
+  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${WORKDIR}/${DOMAIN_TOKEN}.key" -out "${WORKDIR}/${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
 
-  echo "SSL certificate for load balanacers created and stored at ${TMPDIR}/${DOMAIN_TOKEN}.crt, private key stored at ${TMPDIR}/${DOMAIN_TOKEN}.key."
+  echo "SSL certificate for load balanacers created and stored at ${WORKDIR}/${DOMAIN_TOKEN}.crt, private key stored at ${WORKDIR}/${DOMAIN_TOKEN}.key."
   echo "The certificate is a wildcard for the following domains: ${ALT_NAMES}"
 
   echo "Creating SSL certificate for CF router..."
@@ -107,9 +107,9 @@ ssl_certs () {
   ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
   SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
 
-  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.key" -out "${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
+  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.key" -out "${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
 
-  echo "SSL certificate for CF router created and stored at ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt, private key stored at ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.key."
+  echo "SSL certificate for CF router created and stored at ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.crt, private key stored at ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.key."
   echo "The certificate is a wildcard for the following domains: ${ALT_NAMES}"
 
 }
@@ -140,7 +140,7 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_2}." --no-user-output-enabled
   gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_3}." --no-user-output-enabled
   gcloud compute --project "${PROJECT}" url-maps create "${HTTP_LOAD_BALANCER_NAME}" --default-service "${HTTP_LOAD_BALANCER_NAME}" --description "URL Map for HTTP load balancer for access to PCF instances" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" ssl-certificates create "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --certificate "${TMPDIR}/${DOMAIN_TOKEN}.crt"  --private-key "${TMPDIR}/${DOMAIN_TOKEN}.key" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" ssl-certificates create "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --certificate "${WORKDIR}/${DOMAIN_TOKEN}.crt"  --private-key "${WORKDIR}/${DOMAIN_TOKEN}.key" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" target-http-proxies create "pcf-router-http-proxy-${DOMAIN_TOKEN}" --url-map  "${HTTP_LOAD_BALANCER_NAME}" --description "Backend services for load balancing HTTP access to PCF instances"  --no-user-output-enabled
   gcloud compute --project "${PROJECT}" target-https-proxies create "pcf-router-https-proxy-${DOMAIN_TOKEN}" --url-map "${HTTP_LOAD_BALANCER_NAME}" --ssl-certificate "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --description "Backend services for load balancing HTTPS access to PCF instances" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" forwarding-rules create --global "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule" --description "Forwarding rule for load balancing web (plain-text) access to PCF instances." --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/global/addresses/pcf-http-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "80" --target-http-proxy "pcf-router-http-proxy-${DOMAIN_TOKEN}" --no-user-output-enabled
@@ -176,27 +176,27 @@ dns () {
   echo "Waiting for ${DNS_TTL} seconds for the Root DNS to sync up..."
   sleep "${DNS_TTL}"
 
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
 
   # HTTP/S router
   HTTP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${HTTP_LOAD_BALANCER_NAME}" --global  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.${PCF_APPS_DOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.${PCF_APPS_DOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "*.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${HTTP_ADDRESS}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
 
   # ssh router
   SSH_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${SSH_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "ssh.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${SSH_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "ssh.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${SSH_ADDRESS}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
 
   # websockets router
   WS_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${WS_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "doppler.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "loggregator.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "doppler.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "loggregator.${PCF_SYSTEM_DOMAIN}" --ttl "${DNS_TTL}" --type A "${WS_ADDRESS}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
 
   # tcp router
   TCP_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "${TCP_LOAD_BALANCER_NAME}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "tcp.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${TCP_ADDRESS}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "tcp.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "${TCP_ADDRESS}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
 
-  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   echo "DNS entries configured."
 }
 
@@ -222,7 +222,7 @@ blobstore () {
 ops_manager () {
   echo "Installing Operations Manager..."
   OPS_MANAGER_RELEASES_URL="https://network.pivotal.io/api/v2/products/ops-manager/releases"
-  OPS_MANAGER_YML="${TMPDIR}/ops-manager-on-gcp.yml"
+  OPS_MANAGER_YML="${WORKDIR}/ops-manager-on-gcp.yml"
 
   # download the Ops Manager YAML file to find the image we're using
   accept_eula "ops-manager" "${OPS_MANAGER_VERSION}" "yes"
@@ -243,9 +243,9 @@ ops_manager () {
   echo "Configuring DNS for Operations Manager..."
   gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}" --no-user-output-enabled
   OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"  | jq --raw-output ".address"`
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "${OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "${OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   echo "Updated Operations Manager DNS for ${OPS_MANAGER_FQDN} to ${OPS_MANAGER_ADDRESS}."
 
   echo "Creating Operations Manager instance..."
@@ -290,9 +290,9 @@ cloud_foundry () {
 
   echo "Creating DNS entry for MySQL proxy..."
   # provide the necessary DNS records for the internal MySQL database
-  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${TMPDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "mysql.${SUBDOMAIN}" --ttl "${DNS_TTL}" --type A "10.0.15.98" "10.0.15.99" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
 
   echo "Finished preparing for Elastic Runtime installation."
 }
@@ -309,13 +309,13 @@ service_broker () {
 
   GCP_BROKER_DATABASE_NAME="gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}-"`random_phrase`
   # TODO: store this in a file that won't go away if we reboot
-  echo "${GCP_BROKER_DATABASE_NAME}" > "${TMPDIR}/gcp-service-broker-db.name"
+  echo "${GCP_BROKER_DATABASE_NAME}" > "${WORKDIR}/gcp-service-broker-db.name"
   echo "Creating ${GCP_BROKER_DATABASE_NAME} database for service broker..."
   gcloud sql --project="${PROJECT}" instances create "${GCP_BROKER_DATABASE_NAME}" --assign-ip --require-ssl --authorized-networks="${ALL_INTERNET}" --region=${REGION_1}  --gce-zone=${AVAILABILITY_ZONE_1} --no-user-output-enabled
   gcloud sql --project="${PROJECT}" instances set-root-password "${GCP_BROKER_DATABASE_NAME}" --password="${DB_ROOT_PASSWORD}" --no-user-output-enabled
   # server connection requirements
   gcloud --format json sql --project="${PROJECT}" instances describe "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output '.serverCaCert .cert ' > "${KEYDIR}/gcp-service-broker-db-server.crt"
-  gcloud --format json sql --project="${PROJECT}" instances describe "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > "${TMPDIR}/gcp-service-broker-db.ip"
+  gcloud --format json sql --project="${PROJECT}" instances describe "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output ' .ipAddresses [0] .ipAddress ' > "${WORKDIR}/gcp-service-broker-db.ip"
   # client connection requirements
   gcloud sql --project="${PROJECT}" ssl-certs create "${BROKER_DB_USER}${SUBDOMAIN}" "${KEYDIR}/gcp-service-broker-db-client.key" --instance "${GCP_BROKER_DATABASE_NAME}" --no-user-output-enabled
   gcloud sql --project="${PROJECT}" --format=json ssl-certs describe "${BROKER_DB_USER}${SUBDOMAIN}" --instance "${GCP_BROKER_DATABASE_NAME}" | jq --raw-output ' .cert ' > "${KEYDIR}/gcp-service-broker-db-client.crt"
@@ -328,14 +328,14 @@ service_broker () {
     -H "Authorization: Bearer $GCP_AUTH_TOKEN" -H 'Content-Type: application/json' -d "{ \"instance\": \"${GCP_BROKER_DATABASE_NAME}\", \"name\": \"servicebroker\", \"project\": \"${PROJECT}\" }"
 
   # setup a database and add permissions for the servicebroker user
-  mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat "${TMPDIR}/gcp-service-broker-db.ip"` --ssl-ca="${KEYDIR}/gcp-service-broker-db-server.crt" \
+  mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat "${WORKDIR}/gcp-service-broker-db.ip"` --ssl-ca="${KEYDIR}/gcp-service-broker-db-server.crt" \
     --ssl-cert="${KEYDIR}/gcp-service-broker-db-client.crt" --ssl-key="${KEYDIR}/gcp-service-broker-db-client.key" <<SQL
   GRANT ALL PRIVILEGES ON servicebroker.* TO 'pcf'@'%' WITH GRANT OPTION;
 SQL
   echo "Service broker database created. Configred the service broker tile with user 'pcf' and service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com."
   echo "Service broker service account credentials are at ${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json"
   echo "To connect to the database, use the following command-line: "
-  echo "    mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat \"${TMPDIR}/gcp-service-broker-db.ip\"` --ssl-ca=\"${KEYDIR}/gcp-service-broker-db-server.crt\"  --ssl-cert=\"${KEYDIR}/gcp-service-broker-db-client.crt\" --ssl-key=\"${KEYDIR}/gcp-service-broker-db-client.key\""
+  echo "    mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat \"${WORKDIR}/gcp-service-broker-db.ip\"` --ssl-ca=\"${KEYDIR}/gcp-service-broker-db-server.crt\"  --ssl-cert=\"${KEYDIR}/gcp-service-broker-db-client.crt\" --ssl-key=\"${KEYDIR}/gcp-service-broker-db-client.key\""
 }
 
 START_TIMESTAMP=`date`

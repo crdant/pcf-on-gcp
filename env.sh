@@ -44,6 +44,9 @@ export DNS_ZONE
 export DNS_TTL
 export CIDR
 export ALL_INTERNET
+export KEYDIR
+export WORKDIR
+export PASSWORD_LIST
 
 export PCF_SYSTEM_DOMAIN
 export PCF_APPS_DOMAIN

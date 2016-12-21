@@ -2,8 +2,8 @@
 #    outputs the phrase
 
 CF_CLI_GITHUB_RAW_ROOT="https://raw.githubusercontent.com/cloudfoundry/cli/master"
-adjective_file="$TMPDIR/adjectives.txt"
-noun_file="$TMPDIR/nouns.txt"
+adjective_file="$WORKDIR/adjectives.txt"
+noun_file="$WORKDIR/nouns.txt"
 delimiter="-"
 
 if [ ! -f "${adjective_file}" ] ; then

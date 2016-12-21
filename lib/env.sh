@@ -14,6 +14,7 @@ prepare_env () {
   CIDR="10.0.0.0/20"
   ALL_INTERNET="0.0.0.0/0"
   KEYDIR="${BASEDIR}/keys"
+  WORKDIR="${BASEDIR}/work"
   PASSWORD_LIST="${KEYDIR}/password-list"
 
   PCF_SYSTEM_DOMAIN=system.${SUBDOMAIN}

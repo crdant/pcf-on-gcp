@@ -10,3 +10,5 @@ gcp-service-broker-db.ip
 !gcp-service-broker-properties.json
 keys/*
 !keys/README.md
+work/*
+!work/README.md

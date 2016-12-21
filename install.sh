@@ -158,8 +158,8 @@ cloud_foundry () {
 
   # configure BLOB storage locations, system domain, etc. doesn't set everything yet (SSL certificate info doesn't
   # come back with a GET so it's hard to figure out how to set it)
-  PRIVATE_KEY=`cat ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.key`
-  SSL_CERT=`cat ${TMPDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
+  PRIVATE_KEY=`cat ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.key`
+  SSL_CERT=`cat ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
 
   # looks funny, but it keeps us from polluting the environment
   CF_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
@@ -264,7 +264,7 @@ service_broker () {
   CLIENT_CERT=`cat "${KEYDIR}/gcp-service-broker-db-client.crt" | tr '\n' '%' | sed 's/%/\\\n/g'`
   SERVER_CERT=`cat "${KEYDIR}/gcp-service-broker-db-server.crt" | tr '\n' '%' | sed 's/%/\\\n/g'`
   SERVICE_ACCOUNT_CREDENTIALS=`cat "${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json" | jq -c '.' | sed 's/\"/\\\"/g'`
-  BROKER_DB_HOST=`cat "${TMPDIR}/gcp-service-broker-db.ip"`
+  BROKER_DB_HOST=`cat "${WORKDIR}/gcp-service-broker-db.ip"`
 
   GCP_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   set_networks_azs "gcp-service-broker" "${GCP_NETWORK_SETTINGS}"

@@ -39,7 +39,7 @@ download_tile () {
   version_token=`echo ${version} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
   numeric_version=`echo ${version} | sed 's/[^0-9.]*//g'`
   releases_url="https://network.pivotal.io/api/v2/products/${product}/releases"
-  tile_file="$TMPDIR/${product}-${version_token}.pivotal"
+  tile_file="$WORKDIR/${product}-${version_token}.pivotal"
 
   if [ ! -f $tile_file ] ; then
     files_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .product_files .href"`
@@ -57,7 +57,7 @@ download_addon () {
   version_token=`echo ${version} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
   numeric_version=`echo ${version} | sed 's/[^0-9.]*//g'`
   releases_url="https://network.pivotal.io/api/v2/products/${product}/releases"
-  addon_file="$TMPDIR/${product}-${version_token}.tgz"
+  addon_file="$WORKDIR/${product}-${version_token}.tgz"
 
   if [ ! -f $addon_file ] ; then
     files_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .product_files .href"`
