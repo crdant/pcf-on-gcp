@@ -112,9 +112,9 @@ update_env
 overrides
 setup
 echo "Started updating Cloud Foundry in ${PROJECT} from ${CURRENT_PCF_VERSION} to ${PCF_VERSION} at ${START_TIMESTAMP}..."
-# download_assets
+download_assets
 new_ops_manager
-migrate_ops_manager
+# migrate_ops_manager
 # cloud_foundry
 # cleanup
 END_TIMESTAMP=`date`
