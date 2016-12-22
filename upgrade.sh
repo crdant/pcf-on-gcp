@@ -20,7 +20,7 @@ update_env () {
   CURRENT_OPS_MANAGER_VERSION=`curl -qs --insecure -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" ${OPS_MANAGER_API_ENDPOINT}/diagnostic_report | jq --raw-output ".versions .release_version" | cut -d. -f1-3`
   CURRENT_OPS_MANAGER_VERSION_TOKEN=`echo ${CURRENT_OPS_MANAGER_VERSION} | tr . -`
   INSTALLATION_ASSETS_ARCHIVE="${WORKDIR}/${PROJECT}-assets-${CURRENT_PCF_VERSION}.zip"
-  CURRENT_OPS_MANAGER_FQDN="old-${OPS_MANAGER_FQDN}"
+  OLD_OPS_MANAGER_FQDN="old-${OPS_MANAGER_FQDN}"
 }
 
 download_assets () {
@@ -55,7 +55,7 @@ new_ops_manager () {
   CURRENT_OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"  | jq --raw-output ".address"`
   NEW_OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}-new" --region "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "${CURRENT_OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${CURRENT_OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "${OLD_OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${CURRENT_OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   gcloud dns record-sets transaction remove -z "${DNS_ZONE}" --name "${OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${CURRENT_OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "${OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${NEW_OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
@@ -73,27 +73,20 @@ new_ops_manager () {
 
 migrate_ops_manager () {
   # now let's get ops manager going
-  echo "Setting up Operations Manager authentication and adminsitrative user..."
-
-  # this line looks a little funny, but it's to make sure we keep the passwords out of the environment
-  echo "Configuring authentication in Operations Manager..."
-  SETUP_JSON=`export ADMIN_PASSWORD DECRYPTION_PASSPHRASE ; envsubst < api-calls/setup.json ; unset ADMIN_PASSWORD ; unset DECRYPTION_PASSPHRASE`
-  curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/setup" -X POST -H "Content-Type: application/json" -d "${SETUP_JSON}"
-  echo "Operations Manager authentication configured. Your username is admin and password is ${ADMIN_PASSWORD}."
-
-  # log in to the ops_manager so the script can manipulate it
-  login_ops_manager ${OPS_MANAGER_FQDN}
-
   echo "Uploading installation assets from ${INSTALLATION_ASSETS_ARCHIVE}..."
   upload_installation_assets ${OPS_MANAGER_FQDN} ${INSTALLATION_ASSETS_ARCHIVE}
 }
 
+stemcell () {
+  login_ops_manager 
+}
+
 cleanup () {
-  echo "Removing DNS entries for ${CURRENT_OPS_MANAGER_FQDN}..."
+  echo "Removing DNS entries for ${OLD_OPS_MANAGER_FQDN}..."
   gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  gcloud dns record-sets transaction remove -z "${DNS_ZONE}" --name "${CURRENT_OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${CURRENT_OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
+  gcloud dns record-sets transaction remove -z "${DNS_ZONE}" --name "${OLD_OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${CURRENT_OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
-  echo "Removed DNS entries for ${CURRENT_OPS_MANAGER_FQDN}..."
+  echo "Removed DNS entries for ${OLD_OPS_MANAGER_FQDN}..."
 
   echo "Deleting old Ops Manager instance..."
   gcloud compute --project "${PROJECT}" instances delete "pcf-ops-manager-${CURRENT_OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
@@ -113,8 +106,9 @@ overrides
 setup
 echo "Started updating Cloud Foundry in ${PROJECT} from ${CURRENT_PCF_VERSION} to ${PCF_VERSION} at ${START_TIMESTAMP}..."
 # download_assets
-new_ops_manager
+# new_ops_manager
 # migrate_ops_manager
+stemcell
 # cloud_foundry
 # cleanup
 END_TIMESTAMP=`date`
