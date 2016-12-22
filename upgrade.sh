@@ -78,7 +78,12 @@ migrate_ops_manager () {
 }
 
 stemcell () {
-  login_ops_manager 
+  login_ops_manager
+  echo "Downloading latest product stemcell ${STEMCELL_VERSION}..."
+  accept_eula "stemcells" "${STEMCELL_VERSION}" "yes"
+  stemcell_file=`download_stemcell ${STEMCELL_VERSION}`
+  echo "Uploading stemcell to Operations Manager..."
+  upload_stemcell $stemcell_file
 }
 
 cleanup () {
@@ -105,9 +110,9 @@ update_env
 overrides
 setup
 echo "Started updating Cloud Foundry in ${PROJECT} from ${CURRENT_PCF_VERSION} to ${PCF_VERSION} at ${START_TIMESTAMP}..."
-# download_assets
-# new_ops_manager
-# migrate_ops_manager
+download_assets
+new_ops_manager
+migrate_ops_manager
 stemcell
 # cloud_foundry
 # cleanup

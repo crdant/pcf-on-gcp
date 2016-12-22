@@ -143,6 +143,15 @@ products () {
 
 }
 
+stemcell () {
+  login_ops_manager
+  echo "Downloading latest product stemcell ${STEMCELL_VERSION}..."
+  accept_eula "stemcells" "${STEMCELL_VERSION}" "yes"
+  stemcell_file=`download_stemcell ${STEMCELL_VERSION}`
+  echo "Uploading stemcell to Operations Manager..."
+  upload_stemcell $stemcell_file
+}
+
 cloud_foundry () {
   if product_not_available "cf" "${PCF_VERSION}"] ; then
     accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
@@ -155,6 +164,7 @@ cloud_foundry () {
   fi
   echo "Staging Cloud Foundry Elastic Runtime..."
   stage_product "cf"
+  stemcell
 
   # configure BLOB storage locations, system domain, etc. doesn't set everything yet (SSL certificate info doesn't
   # come back with a GET so it's hard to figure out how to set it)

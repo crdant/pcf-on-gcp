@@ -84,7 +84,7 @@ download_stemcell () {
     curl -qsLf -o "${WORKDIR}/$stemcell_file" $download_url
   fi
 
-  echo $stemcell_file
+  echo "${WORKDIR}/$stemcell_file"
 }
 
 upload_stemcell () {
