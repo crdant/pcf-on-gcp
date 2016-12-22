@@ -86,6 +86,50 @@ stemcell () {
   upload_stemcell $stemcell_file
 }
 
+cloud_foundry () {
+  if product_not_available "cf" "${PCF_VERSION}"] ; then
+    accept_eula "elastic-runtime" "${PCF_VERSION}" "yes"
+    echo "Downloading Cloud Foundry Elastic Runtime..."
+    tile_file=`download_tile "elastic-runtime" "${PCF_VERSION}"`
+    echo "Uploading Cloud Foundry Elastic Runtime..."
+    upload_tile $tile_file
+  else
+    echo "Cloud Foundry version ${PCF_VERSION} is already available in Operations Manager at ${OPS_MANAGER_FQDN}"
+  fi
+  echo "Staging Cloud Foundry Elastic Runtime..."
+  stage_product "cf"
+  stemcell
+
+  # configure BLOB storage locations, system domain, etc. doesn't set everything yet (SSL certificate info doesn't
+  # come back with a GET so it's hard to figure out how to set it)
+  PRIVATE_KEY=`cat ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.key`
+  SSL_CERT=`cat ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
+
+  # looks funny, but it keeps us from polluting the environment
+  CF_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
+  set_networks_azs "cf" "${CF_NETWORK_SETTINGS}"
+
+  # looks funny, but it keeps us from polluting the environment
+  PROPERTIES_JSON=`export ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAIN; envsubst < api-calls/elastic-runtime-properties.json ; unset ACCOUNT PRIVATE_KEY SSL_CERT BUILDPACKS_STORAGE_BUCKET DROPLETS_STORAGE_BUCKET RESOURCES_STORAGE_BUCKET PACKAGES_STORAGE_BUCKET GCP_ACCESS_KEY_ID GCP_SECRET_ACCESS_KEY PCF_APPS_DOMAIN PCF_SYSTEM_DOMAINt`
+  set_properties "cf" "${PROPERTIES_JSON}"
+
+  # set the load balancers resource configuration
+  ROUTER_RESOURCES=`get_resources cf router`
+  ROUTER_LBS="[ \"tcp:$WS_LOAD_BALANCER_NAME\", \"http:$HTTP_LOAD_BALANCER_NAME\" ]"
+  ROUTER_RESOURCES=`echo $ROUTER_RESOURCES | jq ".elb_names = $ROUTER_LBS"`
+  set_resources cf router "${ROUTER_RESOURCES}"
+
+  TCP_ROUTER_RESOURCES=`get_resources cf tcp_router`
+  TCP_ROUTER_LBS="[ \"tcp:$TCP_LOAD_BALANCER_NAME\" ]"
+  TCP_ROUTER_RESOURCES=`echo $TCP_ROUTER_RESOURCES | jq ".elb_names = $TCP_ROUTER_LBS"`
+  set_resources cf tcp_router "${TCP_ROUTER_RESOURCES}"
+
+  BRAIN_RESOURCES=`get_resources cf diego_brain`
+  BRAIN_LBS="[ \"tcp:$SSH_LOAD_BALANCER_NAME\" ]"
+  BRAIN_RESOURCES=`echo $BRAIN_RESOURCES | jq ".elb_names = $BRAIN_LBS"`
+  set_resources cf diego_brain "${BRAIN_RESOURCES}"
+}
+
 cleanup () {
   echo "Removing DNS entries for ${OLD_OPS_MANAGER_FQDN}..."
   gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
@@ -110,11 +154,11 @@ update_env
 overrides
 setup
 echo "Started updating Cloud Foundry in ${PROJECT} from ${CURRENT_PCF_VERSION} to ${PCF_VERSION} at ${START_TIMESTAMP}..."
-download_assets
-new_ops_manager
-migrate_ops_manager
-stemcell
-# cloud_foundry
+# download_assets
+# new_ops_manager
+# migrate_ops_manager
+# stemcell
+cloud_foundry
 # cleanup
 END_TIMESTAMP=`date`
 END_SECONDS=`date +%s`
