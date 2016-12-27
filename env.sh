@@ -14,6 +14,7 @@ fi
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/eula.sh"
 . "${BASEDIR}/lib/generate_passphrase.sh"
+. "${BASEDIR}/lib/ssl_certificates.sh"
 . "${BASEDIR}/lib/guid.sh"
 . "${BASEDIR}/lib/jobs.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
