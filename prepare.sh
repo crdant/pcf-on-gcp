@@ -9,6 +9,7 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/random_phrase.sh"
 . "${BASEDIR}/lib/generate_passphrase.sh"
+. "${BASEDIR}/lib/ssl_certificates.sh"
 . "${BASEDIR}/lib/eula.sh"
 . "${BASEDIR}/lib/guid.sh"
 . "${BASEDIR}/lib/networks_azs.sh"
@@ -77,43 +78,6 @@ PASSWORD_LIST
   chmod 700 "${PASSWORD_LIST}"
 }
 
-ssl_certs () {
-  echo "Creating SSL certificate for load balancers..."
-
-  COMMON_NAME="*.${SUBDOMAIN}"
-  COUNTRY="US"
-  STATE="MA"
-  CITY="Cambridge"
-  ORGANIZATION="${DOMAIN}"
-  ORG_UNIT="Cloud Foundry"
-  EMAIL="${ACCOUNT}"
-  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
-  SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
-
-  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${WORKDIR}/${DOMAIN_TOKEN}.key" -out "${WORKDIR}/${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
-
-  echo "SSL certificate for load balanacers created and stored at ${WORKDIR}/${DOMAIN_TOKEN}.crt, private key stored at ${WORKDIR}/${DOMAIN_TOKEN}.key."
-  echo "The certificate is a wildcard for the following domains: ${ALT_NAMES}"
-
-  echo "Creating SSL certificate for CF router..."
-
-  COMMON_NAME="*.${SUBDOMAIN}"
-  COUNTRY="US"
-  STATE="MA"
-  CITY="Cambridge"
-  ORGANIZATION="${DOMAIN}"
-  ORG_UNIT="Cloud Foundry Router"
-  EMAIL="${ACCOUNT}"
-  ALT_NAMES="DNS:*.${SUBDOMAIN},DNS:*.${PCF_SYSTEM_DOMAIN},DNS:*.${PCF_APPS_DOMAIN},DNS:*.login.${PCF_SYSTEM_DOMAIN},DNS:*.uaa.${PCF_SYSTEM_DOMAIN}"
-  SUBJECT="/C=${COUNTRY}/ST=${STATE}/L=${CITY}/O=${ORGANIZATION}/OU=${ORG_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
-
-  openssl req -new -newkey rsa:2048 -days 365 -nodes -sha256 -x509 -keyout "${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.key" -out "${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.crt" -subj "${SUBJECT}" -reqexts SAN -extensions SAN -config <(cat /etc/ssl/openssl.cnf <(printf "\n[SAN]\nsubjectAltName=${ALT_NAMES}\n")) > /dev/null
-
-  echo "SSL certificate for CF router created and stored at ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.crt, private key stored at ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.key."
-  echo "The certificate is a wildcard for the following domains: ${ALT_NAMES}"
-
-}
-
 load_balancers () {
 
   echo "Creating SSH, HTTPS(S), WebSocket, and TCP Routing load balancers..."
@@ -140,7 +104,7 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_2}." --no-user-output-enabled
   gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_3}." --no-user-output-enabled
   gcloud compute --project "${PROJECT}" url-maps create "${HTTP_LOAD_BALANCER_NAME}" --default-service "${HTTP_LOAD_BALANCER_NAME}" --description "URL Map for HTTP load balancer for access to PCF instances" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" ssl-certificates create "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --certificate "${WORKDIR}/${DOMAIN_TOKEN}.crt"  --private-key "${WORKDIR}/${DOMAIN_TOKEN}.key" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" ssl-certificates create "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --certificate "${KEYDIR}/${DOMAIN_TOKEN}.crt"  --private-key "${KEYDIR}/${DOMAIN_TOKEN}.key" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" target-http-proxies create "pcf-router-http-proxy-${DOMAIN_TOKEN}" --url-map  "${HTTP_LOAD_BALANCER_NAME}" --description "Backend services for load balancing HTTP access to PCF instances"  --no-user-output-enabled
   gcloud compute --project "${PROJECT}" target-https-proxies create "pcf-router-https-proxy-${DOMAIN_TOKEN}" --url-map "${HTTP_LOAD_BALANCER_NAME}" --ssl-certificate "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --description "Backend services for load balancing HTTPS access to PCF instances" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" forwarding-rules create --global "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule" --description "Forwarding rule for load balancing web (plain-text) access to PCF instances." --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/global/addresses/pcf-http-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "80" --target-http-proxy "pcf-router-http-proxy-${DOMAIN_TOKEN}" --no-user-output-enabled

@@ -168,8 +168,8 @@ cloud_foundry () {
 
   # configure BLOB storage locations, system domain, etc. doesn't set everything yet (SSL certificate info doesn't
   # come back with a GET so it's hard to figure out how to set it)
-  PRIVATE_KEY=`cat ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.key`
-  SSL_CERT=`cat ${WORKDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
+  PRIVATE_KEY=`cat ${KEYDIR}/pcf-router-${DOMAIN_TOKEN}.key`
+  SSL_CERT=`cat ${KEYDIR}/pcf-router-${DOMAIN_TOKEN}.crt`
 
   # looks funny, but it keeps us from polluting the environment
   CF_NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/tile-networks-and-azs.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
