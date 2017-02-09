@@ -30,20 +30,23 @@ prepare_env () {
   PACKAGES_STORAGE_BUCKET="packages-pcf-${DOMAIN_TOKEN}"
   RESOURCES_STORAGE_BUCKET="resources-pcf-${DOMAIN_TOKEN}"
 
-  OPS_MANAGER_VERSION="1.9.0"
+  OPS_MANAGER_VERSION="1.9.3"
   OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
-  PCF_VERSION="1.9.0"
+  PCF_VERSION="1.9.5"
   STEMCELL_VERSION="3263"
-  MYSQL_VERSION="1.8.1"
-  RABBIT_VERSION="1.7.9"
-  REDIS_VERSION="1.6.3"
-  SCS_VERSION="1.3.1"
-  GCP_VERSION="2.1.1 (BETA)"
+  MYSQL_VERSION="1.8.2"
+  RABBIT_VERSION="1.7.10"
+  REDIS_VERSION="1.7.1"
+  SCS_VERSION="1.3.3"
+  GCP_VERSION="3.0.1 (BETA)"
   GCP_VERSION_TOKEN=`echo ${GCP_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '(' | tr '[:upper:]' '[:lower:]'`
   GCP_VERSION_NUM=`echo ${GCP_VERSION} | sed 's/[^0-9.]*//g'`
-  GEM_VERSION="1.6.3"
-  CONCOURSE_VERSION="1.0.0-edge.3"
+  GEM_VERSION="1.6.6"
+  CONCOURSE_VERSION="1.0.0-edge.9"
   IPSEC_VERSION="1.5.37"
+  STACKDRIVER_VERSION="0.0.1 (BETA)"
+  STACKDRIVER_VERSION_TOKEN=`echo ${STACKDRIVER_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '(' | tr '[:upper:]' '[:lower:]'`
+  STACKDRIVER_VERSION_NUM=`echo ${STACKDRIVER_VERSION} | sed 's/[^0-9.]*//g'`
 
   SSH_LOAD_BALANCER_NAME="pcf-ssh-${DOMAIN_TOKEN}"
   HTTP_LOAD_BALANCER_NAME="pcf-http-router-${DOMAIN_TOKEN}"
