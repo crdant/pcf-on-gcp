@@ -24,6 +24,7 @@ init () {
   INSTALL_GEMFIRE=0
   INSTALL_CONCOURSE=0
   INSTALL_IPSEC=0
+  INSTALL_STACKDRIVER=0
 }
 
 parse_args () {
@@ -57,6 +58,9 @@ parse_args () {
           "concourse")
             INSTALL_CONCOURSE=1
             ;;
+          "stackdriver")
+            INSTALL_STACKDRIVER=1
+            ;;
           "ipsec")
             INSTALL_IPSEC=1
             ;;
@@ -73,6 +77,7 @@ parse_args () {
             INSTALL_GEMFIRE=1
             INSTALL_CONCOURSE=1
             INSTALL_IPSEC=1
+            INSTALL_STACKDRIVER=1
             ;;
           "--help")
             usage
@@ -96,11 +101,12 @@ set_defaults () {
   INSTALL_REDIS=1
   INSTALL_SCS=1
   INSTALL_GCP=1
+  INSTALL_STACKDRIVER=1
 }
 
 usage () {
   cmd=`basename $0`
-  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ]"
+  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ] [ stackdriver ]"
 }
 
 products () {
@@ -317,6 +323,20 @@ ipsec () {
   echo "Uploading IPSec Add-on to the BOSH Director..."
   upload_addon $addon_file
 }
+
+stackdriver () {
+  if product_not_available "gcp-stackdriver-nozzle" "${STACKDRIVER_VERSION_NUM}" ; then
+    # download the broker and make it available
+    accept_eula "gcp-stackdriver-nozzle" "${STACKDRIVER_VERSION}" "yes"
+    echo "Downloading GCP Stackdriver Nozzle..."
+    tile_file=`download_tile "gcp-stackdriver-nozzle" "${STACKDRIVER_VERSION}"`
+    echo "Uploading GCP Stackdriver Nozzle..."
+    upload_tile $tile_file
+  fi
+  echo "Staging GCP Stackdriver Nozzle..."
+  stage_product "gcp-stackdriver-nozzle"
+}
+
 
 START_TIMESTAMP=`date`
 START_SECONDS=`date +%s`
