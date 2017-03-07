@@ -20,8 +20,10 @@ network () {
 
   gcloud compute --project "${PROJECT}" networks create "pcf-${DOMAIN_TOKEN}" --description "Network for ${DOMAIN} Cloud Foundry installation. Creating with a single subnet." --mode "custom" --no-user-output-enabled
 
-  # create a single subnet in us-east1 (parameterize REGION_1 and names later)
+  # create a subnet for PCF
   gcloud compute --project "${PROJECT}" networks subnets create "pcf-${REGION_1}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --region "${REGION_1}" --range ${CIDR} --no-user-output-enabled
+  # create a services subnet
+  gcloud compute --project "${PROJECT}" networks subnets create "pcf-services-${REGION_1}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --region "${REGION_1}" --range ${SERVICES_CIDR} --no-user-output-enabled
 
   # create necessary firewall rules
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-allow-internal-traffic-${DOMAIN_TOKEN}" --allow "tcp:0-65535,udp:0-65535,icmp" --description "Enable traffic between all VMs managed by Ops Manager and BOSH" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --no-user-output-enabled
@@ -36,26 +38,33 @@ network () {
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-bosh-${DOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access from internal sources to the BOSH director" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "bosh" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-cloud-controller-${DOMAIN_TOKEN}" --allow "tcp:80,tcp:443" --description "Allow web access from internal sources to the cloud controller" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "cloud-controller" --no-user-output-enabled
 
-  echo "Google Network for BOSH Director: pcf-${DOMAIN_TOKEN}/pcf-${REGION_1}-${DOMAIN_TOKEN}/${REGION_1}"
+  echo "Google Network for for primary BOSH Director network: pcf-${DOMAIN_TOKEN}/pcf-${REGION_1}-${DOMAIN_TOKEN}/${REGION_1}"
+  echo "Google Network for for BOSH Director services network: pcf-${DOMAIN_TOKEN}/pcf-services-${REGION_1}-${DOMAIN_TOKEN}/${REGION_1}"
+
 }
 
 security () {
   echo "Creating services accounts and SSH keys..."
 
   # create a service account and give it a key (parameterize later), not sure why it doesn't have a project specified but that seems right
-  gcloud iam service-accounts create bosh-opsman-${DOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
-  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account ${SERVICE_ACCOUNT}  --no-user-output-enabled
+  gcloud iam service-accounts --project "${PROJECT}" create bosh-opsman-${DOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
+  gcloud iam service-accounts --project "${PROJECT}" keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account "${SERVICE_ACCOUNT}" --no-user-output-enabled
   # TO DO: the role for the project (editor below) should change
-  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/editor" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/iam.serviceAccountActor" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.instanceAdmin" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.networkAdmin" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.storageAdmin" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/storage.admin" --no-user-output-enabled
 
   # setup VCAP SSH for all boxen
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/vcap-key -b 4096 -C vcap@local > /dev/null
-  gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file --no-user-output-enabled \
-  sshKeys=<( gcloud compute project-info describe --format=json | jq -r '.commonInstanceMetadata.items[] | select(.key == "sshKeys") | .value' & echo "bosh:$(cat ${KEYDIR}/vcap-key.pub)" )
-
+  CURRENT_KEYS=`gcloud compute project-info describe --format=json | jq -r '.commonInstanceMetadata.items[] | select(.key == "sshKeys") | .value'`
+  if [ -z "$CURRENT_KEYS" ] ; then
+    gcloud compute --project="${PROJECT}" project-info add-metadata --metadata-from-file sshKeys=<( echo "bosh:$(cat ${KEYDIR}/vcap-key.pub)" ) --no-user-output-enabled
+  else
+    gcloud compute --project="${PROJECT}" project-info add-metadata  --no-user-output-enabled --metadata-from-file \
+     sshKeys=<( gcloud compute project-info describe --format=json | jq -r '.commonInstanceMetadata.items[] | select(.key == "sshKeys") | .value' & echo "bosh:$(cat ${KEYDIR}/vcap-key.pub)" )
+  fi;
   passwords
 
   echo "Created service account ${SERVICE_ACCOUNT} and added SSH key to project (private key file: ${KEYDIR}/vcap-key)..."
@@ -67,6 +76,8 @@ passwords () {
   DB_ROOT_PASSWORD=`generate_passphrase 3`
   BROKER_DB_USER_PASSWORD=`generate_passphrase 3`
   RABBIT_ADMIN_PASSWORD=`generate_passphrase 4`
+  STACKDRIVER_NOZZLE_PASSWORD=`generate_passphrase 4`
+
 
   cat <<PASSWORD_LIST > "${PASSWORD_LIST}"
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
@@ -74,6 +85,7 @@ DECRYPTION_PASSPHRASE=${DECRYPTION_PASSPHRASE}
 DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
 BROKER_DB_USER_PASSWORD=${BROKER_DB_USER_PASSWORD}
 RABBIT_ADMIN_PASSWORD=${RABBIT_ADMIN_PASSWORD}
+STACKDRIVER_NOZZLE_PASSWORD=${STACKDRIVER_NOZZLE_PASSWORD}
 PASSWORD_LIST
   chmod 700 "${PASSWORD_LIST}"
 }
@@ -302,6 +314,18 @@ SQL
   echo "    mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat \"${WORKDIR}/gcp-service-broker-db.ip\"` --ssl-ca=\"${KEYDIR}/gcp-service-broker-db-server.crt\"  --ssl-cert=\"${KEYDIR}/gcp-service-broker-db-client.crt\" --ssl-key=\"${KEYDIR}/gcp-service-broker-db-client.key\""
 }
 
+stackdriver () {
+  echo "Preparing for GCP Stackdriver Nozzle installation..."
+
+  # prepare for the stackdriver nozzle
+  echo "Setting up service account stackdriver-nozzle-${DOMAIN_TOKEN}"
+  gcloud iam service-accounts create "stackdriver-nozzle-${DOMAIN_TOKEN}" --display-name "PCF Stackdriver Nozzle" --no-user-output-enabled
+  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-stackdriver-nozzle-${DOMAIN_TOKEN}.json" --iam-account stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.logWriter" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.configWriter" --no-user-output-enabled
+  echo "Service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
+}
+
 START_TIMESTAMP=`date`
 START_SECONDS=`date +%s`
 echo "Started preparing Google Cloud Platform project ${PROJECT} to install Cloud Foundry at ${START_TIMESTAMP}..."
@@ -317,6 +341,7 @@ blobstore
 ops_manager
 cloud_foundry
 service_broker
+stackdriver
 END_TIMESTAMP=`date`
 END_SECONDS=`date +%s`
 ELAPSED_TIME=`echo $((END_SECONDS-START_SECONDS)) | awk '{print int($1/60)":"int($1%60)}'`
