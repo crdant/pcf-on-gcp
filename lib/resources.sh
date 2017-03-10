@@ -19,7 +19,5 @@ set_resources () {
   login_ops_manager > /dev/null
   product_guid=`product_guid $product`
   job_guid=`job_guid $product $job`
-  set -o xtrace
-  curl -q --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${product_guid}/jobs/${job_guid}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${resources}"
-  set +o xtrace
+  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${product_guid}/jobs/${job_guid}/resource_config" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${resources}"
 }
