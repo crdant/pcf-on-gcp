@@ -10,6 +10,7 @@ fi
 
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/personal.sh"
+. "${BASEDIR}/lib/credetials.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/eula.sh"
@@ -44,6 +45,7 @@ export SUBDOMAIN
 export DNS_ZONE
 export DNS_TTL
 export CIDR
+export SERVICES_CIDR
 export ALL_INTERNET
 export KEYDIR
 export WORKDIR
@@ -55,6 +57,7 @@ export OPS_MANAGER_HOST
 export OPS_MANAGER_FQDN
 export OPS_MANAGER_API_ENDPOINT
 export DIRECTOR_NETWORK_NAME
+export SERVICE_NETWORK_NAME
 export SERVICE_ACCOUNT
 
 export BUILDPACKS_STORAGE_BUCKET
@@ -76,6 +79,10 @@ export SCS_VERSION
 export GEM_VERSION
 export CONCOURSE_VERSION
 export IPSEC_VERSION
+export PUSH_VERSION
+export STACKDRIVER_VERSION
+export STACKDRIVER_VERSION_TOKEN
+export STACKDRIVER_VERSION_NUM
 
 export SSH_LOAD_BALANCER_NAME
 export HTTP_LOAD_BALANCER_NAME
@@ -87,3 +94,4 @@ export DECRYPTION_PASSPHRASE
 export DB_ROOT_PASSWORD
 export BROKER_DB_USER_PASSWORD
 export RABBIT_ADMIN_PASSWORD
+export STACKDRIVER_NOZZLE_PASSWORD
