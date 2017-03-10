@@ -1,0 +1,10 @@
+{
+  "networks_and_az": {
+    "singleton_availability_zone": {
+      "name": "${AVAILABILITY_ZONE_1}"
+    },
+    "network": {
+      "name": "${DIRECTOR_NETWORK_NAME}"
+    }
+  }
+}

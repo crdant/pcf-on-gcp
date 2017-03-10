@@ -1,0 +1,29 @@
+{
+  "icmp_checks_enabled": true,
+  "networks": [
+    {
+      "name": "${SERVICE_NETWORK_NAME}",
+      "service_network": true,
+      "subnets": [{
+        "iaas_identifier": "${SERVICE_NETWORK_NAME}",
+        "cidr": "${SERVICES_CIDR}",
+        "reserved_ip_ranges": "10.0.0.1",
+        "dns": "8.8.8.8,8.8.4.4",
+        "gateway": "10.0.0.100",
+        "availability_zone_names": ["${AVAILABILITY_ZONE_1}", "${AVAILABILITY_ZONE_2}", "${AVAILABILITY_ZONE_3}"]
+      }]
+    },
+    {
+      "name": "${DIRECTOR_NETWORK_NAME}",
+      "service_network": false,
+      "subnets": [{
+        "iaas_identifier": "${DIRECTOR_NETWORK_NAME}",
+        "cidr": "${CIDR}",
+        "reserved_ip_ranges": "10.0.0.1-10.0.0.9",
+        "dns": "8.8.8.8,8.8.4.4",
+        "gateway": "10.0.0.1",
+        "availability_zone_names": ["${AVAILABILITY_ZONE_1}", "${AVAILABILITY_ZONE_2}", "${AVAILABILITY_ZONE_3}"]
+      }]
+    }
+  ]
+}
