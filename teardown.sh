@@ -19,6 +19,15 @@ vms () {
   done
 }
 
+stackdriver () {
+  echo "Preparing for GCP Stackdriver Nozzle installation..."
+
+  # prepare for the stackdriver nozzle
+  echo "Setting up service account stackdriver-nozzle-${DOMAIN_TOKEN}"
+  gcloud iam --project "${PROJECT}" service-accounts delete "stackdriver-nozzle-${DOMAIN_TOKEN}" --quiet
+  rm "${KEYDIR}/${PROJECT}-stackdriver-nozzle-${DOMAIN_TOKEN}.json"
+}
+
 service_broker () {
   gcloud sql --project="${PROJECT}" instances delete `cat "${WORKDIR}/gcp-service-broker-db.name"` --quiet
   rm "${KEYDIR}/gcp-service-broker-db-server.crt" "${KEYDIR}/gcp-service-broker-db-client.key" "${KEYDIR}/gcp-service-broker-db-client.crt"
@@ -155,6 +164,7 @@ network () {
 
   # remove the a network
   gcloud compute --project "${PROJECT}" networks subnets delete "pcf-${REGION_1}-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-services-${REGION_1}-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
   gcloud compute --project "${PROJECT}" networks delete "pcf-${DOMAIN_TOKEN}" --quiet
 }
 
