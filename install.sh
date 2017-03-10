@@ -13,6 +13,8 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/networks_azs.sh"
 . "${BASEDIR}/lib/properties.sh"
 . "${BASEDIR}/lib/resources.sh"
+. "${BASEDIR}/lib/credentials.sh"
+
 
 init () {
   INSTALL_PCF=0
@@ -25,6 +27,7 @@ init () {
   INSTALL_CONCOURSE=0
   INSTALL_IPSEC=0
   INSTALL_STACKDRIVER=0
+  INSTALL_PUSH=0
 }
 
 parse_args () {
@@ -61,6 +64,9 @@ parse_args () {
           "stackdriver")
             INSTALL_STACKDRIVER=1
             ;;
+          "notifications")
+            INSTALL_PUSH=1
+            ;;
           "ipsec")
             INSTALL_IPSEC=1
             ;;
@@ -78,6 +84,7 @@ parse_args () {
             INSTALL_CONCOURSE=1
             INSTALL_IPSEC=1
             INSTALL_STACKDRIVER=1
+            INSTALL_PUSH=1
             ;;
           "--help")
             usage
@@ -106,7 +113,7 @@ set_defaults () {
 
 usage () {
   cmd=`basename $0`
-  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ] [ stackdriver ]"
+  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ] [ stackdriver ] [ notifications ]"
 }
 
 products () {
@@ -140,6 +147,14 @@ products () {
 
   if [ "$INSTALL_CONCOURSE" -eq 1 ] ; then
     concourse
+  fi
+
+  if [ "$INSTALL_STACKDRIVER" -eq 1 ] ; then
+    stackdriver
+  fi
+
+  if [ "$INSTALL_PUSH" -eq 1 ] ; then
+    push_notifications
   fi
 
   if [ "$INSTALL_IPSEC" -eq 1 ] ; then
@@ -335,8 +350,31 @@ stackdriver () {
   fi
   echo "Staging GCP Stackdriver Nozzle..."
   stage_product "gcp-stackdriver-nozzle"
+
+  # create UAA user
+  uaac target "https://uaa.${PCF_SYSTEM_DOMAIN}" --skip-ssl-validation
+  # NOTE: the secret being set here will not work, it is not correct and the correct one does not appear
+  #       to be available without decoding installation.yml...stay tuned
+  local uaa_admin_secret=`get_credential cf .uaa.admin_client_credentials`
+  uaac token client get admin -s "${uaa_admin_secret}"
+  uaac -t user add stackdriver-nozzle --password ${STACKDRIVER_NOZZLE_PASSWORD} --emails na
+  # these probably need Cloud Foundry installed before you can do anything with them
+  uaac -t member add cloud_controller.admin_read_only stackdriver-nozzle
+  uaac -t member add doppler.firehose stackdriver-nozzle
 }
 
+push_notifications () {
+  if product_not_available "push-notification-service" "${PUSH_VERSION}" ; then
+    # download the broker and make it available
+    accept_eula "push-notification-service" "${PUSH_VERSION}" "yes"
+    echo "Downloading Push Notifications Service..."
+    tile_file=`download_tile "push-notification-service" "${PUSH_VERSION}"`
+    echo "Uploading Push Notifications Service..."
+    upload_tile $tile_file
+  fi
+  echo "Staging Push Notifications Service..."
+  stage_product "push-notification-service"
+}
 
 START_TIMESTAMP=`date`
 START_SECONDS=`date +%s`
