@@ -21,7 +21,7 @@ product_not_available () {
 
   login_ops_manager > /dev/null
   available=`available_products`
-  test -n `echo ${available} | jq ". [] | select ( .name = \"$product\" ) .product_version | select ( startswith(\"$version\") )"`
+  test -z `echo ${available} | jq ". [] | select ( .name == \"$product\" ) .product_version | select ( startswith(\"$version\") )"`
 }
 
 product_not_staged () {
@@ -30,7 +30,7 @@ product_not_staged () {
 
   login_ops_manager > /dev/null
   staged=`staged_products`
-  test -n `echo ${staged} | jq ". [] | select ( .name = \"$product\" ) .product_version | select ( startswith(\"$version\") )"`
+  test -n `echo ${staged} | jq ". [] | select ( .name == \"$product\" ) .product_version | select ( startswith(\"$version\") )"`
 }
 
 download_tile () {
@@ -91,7 +91,7 @@ upload_stemcell () {
   stemcell_file=$1
 
   login_ops_manager > /dev/null
-  curl -q --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/stemcells" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+  curl -qsLf --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/stemcells" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
     -H "Accept: application/json" -F "stemcell[file]=@${stemcell_file}"
 
 }
@@ -115,12 +115,16 @@ upload_addon () {
 
 stage_product () {
   product=$1
+  version=$2
 
   login_ops_manager > /dev/null
 
-  available_product=`curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"$product\" )"`
-  product_name=`echo $available_product | jq --raw-output ".name"`
-  available_version=`echo $available_product | jq --raw-output ".product_version"`
-  curl -qsLf --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$product_name\", \"product_version\": \"${available_version}\"}"
+  if [ -z "${version}" ] ; then
+    available_product=`curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" | jq --raw-output ".[] | select ( .name == \"$product\" )"`
+    product_name=`echo $available_product | jq --raw-output ".name"`
+    version=`echo $available_product | jq --raw-output ".product_version"`
+  fi
+
+  curl -qsv --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$product_name\", \"product_version\": \"${version}\"}"
 }
