@@ -49,8 +49,8 @@ security () {
   # create a service account and give it a key (parameterize later), not sure why it doesn't have a project specified but that seems right
   gcloud iam service-accounts --project "${PROJECT}" create bosh-opsman-${DOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
   gcloud iam service-accounts --project "${PROJECT}" keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account "${SERVICE_ACCOUNT}" --no-user-output-enabled
-  # TO DO: the role for the project (editor below) should change
-  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/iam.serviceAccountActor" --no-user-output-enabled
+
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/editor" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.instanceAdmin" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.networkAdmin" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.storageAdmin" --no-user-output-enabled
@@ -225,7 +225,7 @@ ops_manager () {
   echo "Updated Operations Manager DNS for ${OPS_MANAGER_FQDN} to ${OPS_MANAGER_ADDRESS}."
 
   echo "Creating Operations Manager instance..."
-  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes ${SERVICE_ACCOUNT}="https://www.googleapis.com/auth/cloud-platform" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/cloud-platform" --service-account "${SERVICE_ACCOUNT}" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/ubuntu-key -b 4096 -C ubuntu@local > /dev/null
   sed -i.gcp '1s/^/ubuntu: /' ${KEYDIR}/ubuntu-key.pub
   gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=${KEYDIR}/ubuntu-key.pub" --no-user-output-enabled
@@ -255,9 +255,22 @@ ops_manager () {
   echo "Operations Manager installed and prepared for tile configruation. If you are using install.sh, be sure to create BOSH network ${DIRECTOR_NETWORK_NAME}"
 
   echo "Configuring the BOSH Director (some settings are not done via the API)..."
-  DIRECTOR_SETTINGS=`export DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT; envsubst < api-calls/director.yml ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
+  DIRECTOR_SETTINGS=`export DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT; envsubst < api-calls/director.json ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
   curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/properties" \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${DIRECTOR_SETTINGS}"
+
+  NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT; envsubst < api-calls/network-settings.json ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
+  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/networks" \
+      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${NETWORK_SETTINGS}"
+
+  AVAILABILITY_ZONES=`export AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/availability_zones.json ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
+  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/availability_zones" \
+      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${AVAILABILITY_ZONES}"
+
+  NETWORK_AND_AZ=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1; envsubst < api-calls/director-network-and-az.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1`
+  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/network_and_az" \
+      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${NETWORK_AND_AZ}"
+
   echo "BOSH Director created"
 }
 
@@ -319,8 +332,8 @@ stackdriver () {
 
   # prepare for the stackdriver nozzle
   echo "Setting up service account stackdriver-nozzle-${DOMAIN_TOKEN}"
-  gcloud iam service-accounts create "stackdriver-nozzle-${DOMAIN_TOKEN}" --display-name "PCF Stackdriver Nozzle" --no-user-output-enabled
-  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-stackdriver-nozzle-${DOMAIN_TOKEN}.json" --iam-account stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --no-user-output-enabled
+  gcloud iam --project "${PROJECT}" service-accounts create "stackdriver-nozzle-${DOMAIN_TOKEN}" --display-name "PCF Stackdriver Nozzle" --no-user-output-enabled
+  gcloud iam --project "${PROJECT}" service-accounts keys create "${KEYDIR}/${PROJECT}-stackdriver-nozzle-${DOMAIN_TOKEN}.json" --iam-account stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.logWriter" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.configWriter" --no-user-output-enabled
   echo "Service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
