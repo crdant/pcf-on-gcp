@@ -32,13 +32,15 @@ prepare_env () {
   PACKAGES_STORAGE_BUCKET="packages-pcf-${DOMAIN_TOKEN}"
   RESOURCES_STORAGE_BUCKET="resources-pcf-${DOMAIN_TOKEN}"
 
-  OPS_MANAGER_VERSION="1.9.5"
+  # OPS_MANAGER_VERSION="1.9.5"
+  OPS_MANAGER_VERSION="1.10.0-rc3"
   OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
-  PCF_VERSION="1.9.10"
-  STEMCELL_VERSION="3263"
+  # PCF_VERSION="1.9.10"
+  PCF_VERSION="1.10.0-rc.5"
+  STEMCELL_VERSION="3263.20"
   MYSQL_VERSION="1.9.0"
-  RABBIT_VERSION="1.7.13"
-  REDIS_VERSION="1.7.2"
+  RABBIT_VERSION="1.7.14"
+  REDIS_VERSION="1.7.3"SSH
   SCS_VERSION="1.3.3"
   GCP_VERSION="3.1.2 (BETA)"
   GCP_VERSION_TOKEN=`echo ${GCP_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '(' | tr '[:upper:]' '[:lower:]'`
@@ -50,6 +52,7 @@ prepare_env () {
   STACKDRIVER_VERSION_TOKEN=`echo ${STACKDRIVER_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '(' | tr '[:upper:]' '[:lower:]'`
   STACKDRIVER_VERSION_NUM=`echo ${STACKDRIVER_VERSION} | sed 's/[^0-9.]*//g'`
   PUSH_VERSION="1.8.0"
+  ISOLATION_VERSION="1.10.0-rc.2"
 
   SSH_LOAD_BALANCER_NAME="pcf-ssh-${DOMAIN_TOKEN}"
   HTTP_LOAD_BALANCER_NAME="pcf-http-router-${DOMAIN_TOKEN}"
