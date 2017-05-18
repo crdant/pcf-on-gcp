@@ -7,6 +7,7 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
+. "${BASEDIR}/lib/credentials.sh"
 . "${BASEDIR}/lib/assets.sh"
 . "${BASEDIR}/lib/products.sh"
 . "${BASEDIR}/lib/resources.sh"
@@ -72,7 +73,7 @@ new_ops_manager () {
   gcloud compute --project ${PROJECT} instances stop "pcf-ops-manager-${CURRENT_OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}"  --quiet
 
   echo "Creating Operations Manager instance..."
-  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.5" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}-new" --maintenance-policy "MIGRATE" --scopes ${SERVICE_ACCOUNT}="https://www.googleapis.com/auth/cloud-platform" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.5" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}-new" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/cloud-platform" --service-account "${SERVICE_ACCOUNT}" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
   gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=${KEYDIR}/ubuntu-key.pub" --no-user-output-enabled
   echo "Completed installing the new version of Operations Manager alongside the existing one at ${OPS_MANAGER_FQDN}..."
 
@@ -169,12 +170,11 @@ update_env
 overrides
 setup
 echo "Started updating Cloud Foundry in ${PROJECT} from ${CURRENT_PCF_VERSION} to ${PCF_VERSION} at ${START_TIMESTAMP}..."
-# download_assets
+download_assets
 new_ops_manager
 migrate_ops_manager
 login_ops_manager
 stemcell
-stage_product "cf" "${PCF_VERSION}"
 cloud_foundry
 # cleanup
 END_TIMESTAMP=`date`
