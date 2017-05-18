@@ -28,6 +28,7 @@ init () {
   INSTALL_IPSEC=0
   INSTALL_STACKDRIVER=0
   INSTALL_PUSH=0
+  INSTALL_ISOLATION=0
 }
 
 parse_args () {
@@ -70,6 +71,9 @@ parse_args () {
           "ipsec")
             INSTALL_IPSEC=1
             ;;
+          "isolation")
+            INSTALL_ISOLATION=1
+            ;;
           "default")
             set_defaults
             ;;
@@ -85,6 +89,7 @@ parse_args () {
             INSTALL_IPSEC=1
             INSTALL_STACKDRIVER=1
             INSTALL_PUSH=1
+            INSTALL_ISOLATION=1
             ;;
           "--help")
             usage
@@ -113,7 +118,7 @@ set_defaults () {
 
 usage () {
   cmd=`basename $0`
-  echo "$cmd [ pcf ] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ] [ stackdriver ] [ notifications ]"
+  echo "$cmd [ pcf ] [isolation] [ mysql ] [ rabbit ] [ redis ] [ scs ] [ gcp ] [ gemfire ] [ concourse ] [ stackdriver ] [ notifications ]"
 }
 
 products () {
@@ -155,6 +160,10 @@ products () {
 
   if [ "$INSTALL_PUSH" -eq 1 ] ; then
     push_notifications
+  fi
+
+  if [ "$INSTALL_ISOLATION" -eq 1 ] ; then
+    isolation_segments
   fi
 
   if [ "$INSTALL_IPSEC" -eq 1 ] ; then
@@ -374,6 +383,19 @@ push_notifications () {
   fi
   echo "Staging Push Notifications Service..."
   stage_product "push-notification-service"
+}
+
+isolation_segments () {
+  if product_not_available "isolation-segment" "${ISOLATION_VERSION}" ; then
+    # download the broker and make it available
+    accept_eula "isolation-segment" "${ISOLATION_VERSION}" "yes"
+    echo "Downloading Isolation Segments..."
+    tile_file=`download_tile "isolation-segment" "${ISOLATION_VERSION}"`
+    echo "Uploading Isolation Segments..."
+    upload_tile $tile_file
+  fi
+  echo "Staging Isolation Segments..."
+  stage_product "isolation-segment"
 }
 
 START_TIMESTAMP=`date`
