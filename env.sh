@@ -10,7 +10,7 @@ fi
 
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/personal.sh"
-. "${BASEDIR}/lib/credetials.sh"
+. "${BASEDIR}/lib/credentials.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/eula.sh"
@@ -24,6 +24,7 @@ fi
 . "${BASEDIR}/lib/properties.sh"
 . "${BASEDIR}/lib/random_phrase.sh"
 . "${BASEDIR}/lib/resources.sh"
+. "${BASEDIR}/lib/assets.sh"
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/unlock_ops_manager.sh"
 prepare_env
