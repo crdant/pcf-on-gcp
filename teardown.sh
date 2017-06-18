@@ -23,15 +23,15 @@ stackdriver () {
   echo "Preparing for GCP Stackdriver Nozzle installation..."
 
   # prepare for the stackdriver nozzle
-  echo "Setting up service account stackdriver-nozzle-${DOMAIN_TOKEN}"
-  gcloud iam --project "${PROJECT}" service-accounts delete "stackdriver-nozzle-${DOMAIN_TOKEN}" --quiet
-  rm "${KEYDIR}/${PROJECT}-stackdriver-nozzle-${DOMAIN_TOKEN}.json"
+  echo "Setting up service account stackdriver-nozzle-${SUBDOMAIN_TOKEN}"
+  gcloud iam --project "${PROJECT}" service-accounts delete "stackdriver-nozzle-${SUBDOMAIN_TOKEN}" --quiet
+  rm "${KEYDIR}/${PROJECT}-stackdriver-nozzle-${SUBDOMAIN_TOKEN}.json"
 }
 
 service_broker () {
   gcloud sql --project="${PROJECT}" instances delete `cat "${WORKDIR}/gcp-service-broker-db.name"` --quiet
   rm "${KEYDIR}/gcp-service-broker-db-server.crt" "${KEYDIR}/gcp-service-broker-db-client.key" "${KEYDIR}/gcp-service-broker-db-client.crt"
-  gcloud iam service-accounts delete service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
+  gcloud iam service-accounts delete service-broker-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 }
 
 cloud_foundry () {
@@ -47,24 +47,24 @@ products () {
 
 blobstore () {
   # drop cloud storage buckets
-  gsutil rm -r gs://buildpacks-pcf-${DOMAIN_TOKEN}
-  gsutil rm -r gs://droplets-pcf-${DOMAIN_TOKEN}
-  gsutil rm -r gs://packages-pcf-${DOMAIN_TOKEN}
-  gsutil rm -r gs://resources-pcf-${DOMAIN_TOKEN}
+  gsutil rm -r gs://buildpacks-pcf-${SUBDOMAIN_TOKEN}
+  gsutil rm -r gs://droplets-pcf-${SUBDOMAIN_TOKEN}
+  gsutil rm -r gs://packages-pcf-${SUBDOMAIN_TOKEN}
+  gsutil rm -r gs://resources-pcf-${SUBDOMAIN_TOKEN}
 }
 
 ops_manager () {
   # remove from DNS
-  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}" | jq --raw-output ".address"`
+  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" | jq --raw-output ".address"`
   gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --quiet
   gcloud dns record-sets transaction remove -z ${DNS_ZONE} --name "${OPS_MANAGER_FQDN}" --ttl ${DNS_TTL} --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml"
   gcloud dns record-sets transaction execute -z ${DNS_ZONE} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml"
 
   # release public IP
-  gcloud compute --project "${PROJECT}" addresses delete "pcf-ops-manager-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" addresses delete "pcf-ops-manager-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
 
   # drop Ops Manager
-  gcloud compute --project "${PROJECT}" instances delete "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
+  gcloud compute --project "${PROJECT}" instances delete "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
   gcloud compute --project "${PROJECT}" images delete "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}" --quiet
   rm ${KEYDIR}/ubuntu-key ${KEYDIR}/ubuntu-key.pub
 }
@@ -83,15 +83,15 @@ load_balancers () {
 
   # HTTP(S)
   gcloud compute --project "${PROJECT}" forwarding-rules delete --global "${HTTP_LOAD_BALANCER_NAME}-forwarding-rule" "${HTTP_LOAD_BALANCER_NAME}-forwarding-rule2" --quiet
-  gcloud compute --project "${PROJECT}" target-https-proxies delete "pcf-router-https-proxy-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" target-http-proxies delete "pcf-router-http-proxy-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" ssl-certificates delete "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" target-https-proxies delete "pcf-router-https-proxy-${SUBDOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" target-http-proxies delete "pcf-router-http-proxy-${SUBDOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" ssl-certificates delete "pcf-router-ssl-cert-${SUBDOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" url-maps delete "${HTTP_LOAD_BALANCER_NAME}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --quiet
-  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${SUBDOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${SUBDOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --quiet
+  gcloud compute --project "${PROJECT}" backend-services remove-backend "${HTTP_LOAD_BALANCER_NAME}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${SUBDOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --quiet
   gcloud compute --project "${PROJECT}" backend-services delete "${HTTP_LOAD_BALANCER_NAME}" --global --quiet
-  gcloud compute --project "${PROJECT}" http-health-checks delete "pcf-http-router-health-check-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" http-health-checks delete "pcf-http-router-health-check-${SUBDOMAIN_TOKEN}" --quiet
   gcloud compute --project "${PROJECT}" addresses delete "${HTTP_LOAD_BALANCER_NAME}" --global --quiet
 
   # SSH
@@ -100,9 +100,9 @@ load_balancers () {
   gcloud compute --project "${PROJECT}" addresses delete "${SSH_LOAD_BALANCER_NAME}" --region ${REGION_1} --quiet
 
   # remove the instance group that they load balancers depend on
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_2} --quiet
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_3} --quiet
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_1}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --quiet
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_2}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_2} --quiet
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged delete "pcf-instances-${AVAILABILITY_ZONE_3}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_3} --quiet
 }
 
 dns () {
@@ -138,7 +138,7 @@ security () {
   rm ${KEYDIR}/vcap-key ${KEYDIR}/vcap-key.pub
 
   # delete the service account
-  gcloud iam service-accounts delete bosh-opsman-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
+  gcloud iam service-accounts delete bosh-opsman-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 
   # get rid of the saved passwords
   passwords
@@ -150,22 +150,25 @@ passwords () {
 
 network () {
   # remove the firewall rules I added based on my earlier experimentation
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-bosh-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-cloud-controller-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-bosh-${SUBDOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-cloud-controller-${SUBDOMAIN_TOKEN}" --quiet
 
   # remove firewall rule for the IPSec AddOn
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-ipsec-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-ipsec-${SUBDOMAIN_TOKEN}" --quiet
 
   # remove necessary firewall rules
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-allow-internal-traffic-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-opsmanager-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-load-balancers-${DOMAIN_TOKEN}" --quiet
-  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-tcp-load-balancers-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-allow-internal-traffic-${SUBDOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-opsmanager-${SUBDOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-load-balancers-${SUBDOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" firewall-rules delete "pcf-access-tcp-load-balancers-${SUBDOMAIN_TOKEN}" --quiet
 
   # remove the a network
-  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-${REGION_1}-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-services-${REGION_1}-${DOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" networks delete "pcf-${DOMAIN_TOKEN}" --quiet
+  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-services-${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-tiles-${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-deployment-${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-infra-${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
+
+  gcloud compute --project "${PROJECT}" networks delete "pcf-${SUBDOMAIN_TOKEN}" --quiet
 }
 
 START_TIMESTAMP=`date`

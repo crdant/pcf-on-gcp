@@ -14,32 +14,48 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/guid.sh"
 . "${BASEDIR}/lib/networks_azs.sh"
 
+apis () {
+  echo "Enabling APIs..."
+  gcloud --project "${PROJECT}" service-management enable compute-component.googleapis.com --no-user-output-enabled
+  gcloud --project "${PROJECT}" service-management enable iam.googleapis.com --no-user-output-enabled
+  gcloud --project "${PROJECT}" service-management enable cloudresourcemanager.googleapis.com --no-user-output-enabled
+  gcloud --project "${PROJECT}" service-management enable dns.googleapis.com --no-user-output-enabled
+  gcloud --project "${PROJECT}" service-management enable storage-component.googleapis.com --no-user-output-enabled
+  gcloud --project "${PROJECT}" service-management enable sql-component.googleapis.com --no-user-output-enabled
+}
+
 network () {
   # create a network (parameterize the network name and project later)
   echo "Creating network, subnet, and firewall rules..."
 
-  gcloud compute --project "${PROJECT}" networks create "pcf-${DOMAIN_TOKEN}" --description "Network for ${DOMAIN} Cloud Foundry installation. Creating with a single subnet." --mode "custom" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" networks create "pcf-${SUBDOMAIN_TOKEN}" --description "Network for ${DOMAIN} Cloud Foundry installation. Creating with a subnets per reference architecture." --mode "custom" --no-user-output-enabled
 
-  # create a subnet for PCF
-  gcloud compute --project "${PROJECT}" networks subnets create "pcf-${REGION_1}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --region "${REGION_1}" --range ${CIDR} --no-user-output-enabled
-  # create a services subnet
-  gcloud compute --project "${PROJECT}" networks subnets create "pcf-services-${REGION_1}-${DOMAIN_TOKEN}" --network "pcf-${DOMAIN_TOKEN}" --region "${REGION_1}" --range ${SERVICES_CIDR} --no-user-output-enabled
+  # create an infrastructure subnet
+  gcloud compute --project "${PROJECT}" networks subnets create "pcf-infra-${REGION_1}-${SUBDOMAIN_TOKEN}" --network "pcf-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --range ${INFRASTRUCTURE_CIDR} --no-user-output-enabled
+  # create a subnet for ERT
+  gcloud compute --project "${PROJECT}" networks subnets create "pcf-deployment-${REGION_1}-${SUBDOMAIN_TOKEN}" --network "pcf-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --range ${DEPLOYMENT_CIDR} --no-user-output-enabled
+  # create a non-ODB services subnet
+  gcloud compute --project "${PROJECT}" networks subnets create "pcf-tiles-${REGION_1}-${SUBDOMAIN_TOKEN}" --network "pcf-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --range ${TILES_CIDR} --no-user-output-enabled
+  # create a ODB services subnet
+  gcloud compute --project "${PROJECT}" networks subnets create "pcf-services-${REGION_1}-${SUBDOMAIN_TOKEN}" --network "pcf-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --range ${SERVICES_CIDR} --no-user-output-enabled
 
   # create necessary firewall rules
-  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-allow-internal-traffic-${DOMAIN_TOKEN}" --allow "tcp:0-65535,udp:0-65535,icmp" --description "Enable traffic between all VMs managed by Ops Manager and BOSH" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-opsmanager-${DOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access to the Ops Manager" --network "pcf-${DOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-opsmanager" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-load-balancers-${DOMAIN_TOKEN}" --allow "tcp:80,tcp:443,tcp:2222,tcp:8080" --description "Allow web, log, and SSH access to the load balancers" --network "pcf-${DOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-lb" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-tcp-load-balancers-${DOMAIN_TOKEN}" --allow "tcp:1024-65535" --description "Allow access to load balancers for TCP routing" --network "pcf-${DOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-tcp-lb" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-allow-internal-traffic-${SUBDOMAIN_TOKEN}" --allow "tcp:0-65535,udp:0-65535,icmp" --description "Enable traffic between all VMs managed by Ops Manager and BOSH" --network "pcf-${SUBDOMAIN_TOKEN}" --source-ranges ${CIDR} --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-opsmanager-${SUBDOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access to the Ops Manager" --network "pcf-${SUBDOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-opsmanager" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-load-balancers-${SUBDOMAIN_TOKEN}" --allow "tcp:80,tcp:443,tcp:2222,tcp:8080" --description "Allow web, log, and SSH access to the load balancers" --network "pcf-${SUBDOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-lb" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-tcp-load-balancers-${SUBDOMAIN_TOKEN}" --allow "tcp:1024-65535" --description "Allow access to load balancers for TCP routing" --network "pcf-${SUBDOMAIN_TOKEN}" --source-ranges "${ALL_INTERNET}" --target-tags "pcf-tcp-lb" --no-user-output-enabled
 
   # create firewall rule for the IPSec AddOn
-  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-ipsec-${DOMAIN_TOKEN}" --allow "udp:500,ah,esp" --description "Enable IPSec access to the network" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${ALL_INTERNET} --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-ipsec-${SUBDOMAIN_TOKEN}" --allow "udp:500,ah,esp" --description "Enable IPSec access to the network" --network "pcf-${SUBDOMAIN_TOKEN}" --source-ranges ${ALL_INTERNET} --no-user-output-enabled
 
   # create additional firewall rules that are not in the documentation but seem to be necessary based on my experiments
-  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-bosh-${DOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access from internal sources to the BOSH director" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "bosh" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-cloud-controller-${DOMAIN_TOKEN}" --allow "tcp:80,tcp:443" --description "Allow web access from internal sources to the cloud controller" --network "pcf-${DOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "cloud-controller" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-bosh-${SUBDOMAIN_TOKEN}" --allow "tcp:22,tcp:80,tcp:443" --description "Allow web and SSH access from internal sources to the BOSH director" --network "pcf-${SUBDOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "bosh" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-cloud-controller-${SUBDOMAIN_TOKEN}" --allow "tcp:80,tcp:443" --description "Allow web access from internal sources to the cloud controller" --network "pcf-${SUBDOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "cloud-controller" --no-user-output-enabled
 
-  echo "Google Network for for primary BOSH Director network: pcf-${DOMAIN_TOKEN}/pcf-${REGION_1}-${DOMAIN_TOKEN}/${REGION_1}"
-  echo "Google Network for for BOSH Director services network: pcf-${DOMAIN_TOKEN}/pcf-services-${REGION_1}-${DOMAIN_TOKEN}/${REGION_1}"
+  echo "Google Network for for infrastructure BOSH Director network: pcf-infra-${SUBDOMAIN_TOKEN}/pcf-infrastructure-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
+  echo "Google Network for for Elastic Runtime BOSH Director network: pcf-${SUBDOMAIN_TOKEN}/pcf-deployment-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
+  echo "Google Network for for tiles BOSH Director network: pcf-${SUBDOMAIN_TOKEN}/pcf-tiles-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
+  echo "Google Network for for ODB services BOSH Director network: pcf-${SUBDOMAIN_TOKEN}/pcf-services-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
 
 }
 
@@ -47,8 +63,8 @@ security () {
   echo "Creating services accounts and SSH keys..."
 
   # create a service account and give it a key (parameterize later), not sure why it doesn't have a project specified but that seems right
-  gcloud iam service-accounts --project "${PROJECT}" create bosh-opsman-${DOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
-  gcloud iam service-accounts --project "${PROJECT}" keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${DOMAIN_TOKEN}.json" --iam-account "${SERVICE_ACCOUNT}" --no-user-output-enabled
+  gcloud iam service-accounts --project "${PROJECT}" create bosh-opsman-${SUBDOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
+  gcloud iam service-accounts --project "${PROJECT}" keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${SUBDOMAIN_TOKEN}.json" --iam-account "${SERVICE_ACCOUNT}" --no-user-output-enabled
 
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/editor" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.instanceAdmin" --no-user-output-enabled
@@ -95,52 +111,52 @@ load_balancers () {
   echo "Creating SSH, HTTPS(S), WebSocket, and TCP Routing load balancers..."
   # setup the load balancers
   echo "Creating instance groups for each availability zone (${AVAILABILITY_ZONE_1}, ${AVAILABILITY_ZONE_2}, ${AVAILABILITY_ZONE_3})..."
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_1}." --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_2} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_2}." --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_3} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_3}." --no-user-output-enabled
-  echo "Instance groups pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}, pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}, and pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN} created."
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_1}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_1}." --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_2}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_2} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_2}." --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" instance-groups unmanaged create "pcf-instances-${AVAILABILITY_ZONE_3}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_3} --description "Includes VM instances that are managed as part of the PCF install in ${AVAILABILITY_ZONE_3}." --no-user-output-enabled
+  echo "Instance groups pcf-instances-${AVAILABILITY_ZONE_1}-${SUBDOMAIN_TOKEN}, pcf-instances-${AVAILABILITY_ZONE_2}-${SUBDOMAIN_TOKEN}, and pcf-instances-${AVAILABILITY_ZONE_3}-${SUBDOMAIN_TOKEN} created."
 
   # SSH
   echo "Creating SSH load balancer..."
   gcloud compute --project "${PROJECT}" addresses create "${SSH_LOAD_BALANCER_NAME}" --region "${REGION_1}" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" target-pools create "${SSH_LOAD_BALANCER_NAME}" --description "Target pool for load balancing SSH access to PCF instances" --region "${REGION_1}" --session-affinity "NONE" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" forwarding-rules create "${SSH_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing SSH access to PCF instances" --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ssh-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "2222" --target-pool "${SSH_LOAD_BALANCER_NAME}" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" forwarding-rules create "${SSH_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing SSH access to PCF instances" --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ssh-${SUBDOMAIN_TOKEN}" --ip-protocol "TCP" --ports "2222" --target-pool "${SSH_LOAD_BALANCER_NAME}" --no-user-output-enabled
   echo "SSH load balancer ${SSH_LOAD_BALANCER_NAME} created..."
 
   # HTTP(S)
   echo "Creating HTTP(S) load balancer..."
   gcloud compute --project "${PROJECT}" addresses create "${HTTP_LOAD_BALANCER_NAME}" --global --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" http-health-checks create "pcf-http-router-health-check-${DOMAIN_TOKEN}" --description "Health check for load balancing web access to PCF instances" --request-path "/health" --port="8080" --timeout "5s" --healthy-threshold "2" --unhealthy-threshold "2" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" backend-services create "${HTTP_LOAD_BALANCER_NAME}" --description "Backend services for load balancing web access to PCF instances" --global --session-affinity "NONE"  --http-health-checks "pcf-http-router-health-check-${DOMAIN_TOKEN}" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_1}." --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_2}." --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${DOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${DOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_3}." --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" http-health-checks create "pcf-http-router-health-check-${SUBDOMAIN_TOKEN}" --description "Health check for load balancing web access to PCF instances" --request-path "/health" --port="8080" --timeout "5s" --healthy-threshold "2" --unhealthy-threshold "2" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" backend-services create "${HTTP_LOAD_BALANCER_NAME}" --description "Backend services for load balancing web access to PCF instances" --global --session-affinity "NONE"  --http-health-checks "pcf-http-router-health-check-${SUBDOMAIN_TOKEN}" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${SUBDOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_1}-${SUBDOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_1}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_1}." --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${SUBDOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_2}-${SUBDOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_2}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_2}." --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" backend-services add-backend "pcf-http-router-${SUBDOMAIN_TOKEN}" --global --instance-group "pcf-instances-${AVAILABILITY_ZONE_3}-${SUBDOMAIN_TOKEN}" --instance-group-zone "${AVAILABILITY_ZONE_3}" --description "Backend to map HTTP load balancing to the appropriate instances in ${AVAILABILITY_ZONE_3}." --no-user-output-enabled
   gcloud compute --project "${PROJECT}" url-maps create "${HTTP_LOAD_BALANCER_NAME}" --default-service "${HTTP_LOAD_BALANCER_NAME}" --description "URL Map for HTTP load balancer for access to PCF instances" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" ssl-certificates create "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --certificate "${KEYDIR}/${DOMAIN_TOKEN}.crt"  --private-key "${KEYDIR}/${DOMAIN_TOKEN}.key" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" target-http-proxies create "pcf-router-http-proxy-${DOMAIN_TOKEN}" --url-map  "${HTTP_LOAD_BALANCER_NAME}" --description "Backend services for load balancing HTTP access to PCF instances"  --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" target-https-proxies create "pcf-router-https-proxy-${DOMAIN_TOKEN}" --url-map "${HTTP_LOAD_BALANCER_NAME}" --ssl-certificate "pcf-router-ssl-cert-${DOMAIN_TOKEN}" --description "Backend services for load balancing HTTPS access to PCF instances" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" forwarding-rules create --global "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule" --description "Forwarding rule for load balancing web (plain-text) access to PCF instances." --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/global/addresses/pcf-http-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "80" --target-http-proxy "pcf-router-http-proxy-${DOMAIN_TOKEN}" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" forwarding-rules create --global "pcf-http-router-${DOMAIN_TOKEN}-forwarding-rule2" --description "Forwarding rule for load balancing web (SSL) access to PCF instances." --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/global/addresses/pcf-http-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-https-proxy "pcf-router-https-proxy-${DOMAIN_TOKEN}" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" ssl-certificates create "pcf-router-ssl-cert-${SUBDOMAIN_TOKEN}" --certificate "${KEYDIR}/${SUBDOMAIN_TOKEN}.crt"  --private-key "${KEYDIR}/${SUBDOMAIN_TOKEN}.key" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" target-http-proxies create "pcf-router-http-proxy-${SUBDOMAIN_TOKEN}" --url-map  "${HTTP_LOAD_BALANCER_NAME}" --description "Backend services for load balancing HTTP access to PCF instances"  --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" target-https-proxies create "pcf-router-https-proxy-${SUBDOMAIN_TOKEN}" --url-map "${HTTP_LOAD_BALANCER_NAME}" --ssl-certificate "pcf-router-ssl-cert-${SUBDOMAIN_TOKEN}" --description "Backend services for load balancing HTTPS access to PCF instances" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" forwarding-rules create --global "pcf-http-router-${SUBDOMAIN_TOKEN}-forwarding-rule" --description "Forwarding rule for load balancing web (plain-text) access to PCF instances." --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/global/addresses/pcf-http-router-${SUBDOMAIN_TOKEN}" --ip-protocol "TCP" --ports "80" --target-http-proxy "pcf-router-http-proxy-${SUBDOMAIN_TOKEN}" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" forwarding-rules create --global "pcf-http-router-${SUBDOMAIN_TOKEN}-forwarding-rule2" --description "Forwarding rule for load balancing web (SSL) access to PCF instances." --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/global/addresses/pcf-http-router-${SUBDOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-https-proxy "pcf-router-https-proxy-${SUBDOMAIN_TOKEN}" --no-user-output-enabled
   echo "HTTP(S) load balancer ${HTTP_LOAD_BALANCER_NAME} created."
 
   # Websockets (documentation says it reuses a bunch of stuff from the HTTP LB)
   echo "Created Websockets load balancer..."
   gcloud compute --project "${PROJECT}" addresses create "${WS_LOAD_BALANCER_NAME}" --region "${REGION_1}" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" target-pools create "${WS_LOAD_BALANCER_NAME}" --description "Target pool for load balancing web access to PCF instances" --region "${REGION_1}" --session-affinity "NONE"  --http-health-check "pcf-http-router-health-check-${DOMAIN_TOKEN}" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" forwarding-rules create "${WS_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing web access to PCF instances." --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-websockets-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-pool "${WS_LOAD_BALANCER_NAME}" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" target-pools create "${WS_LOAD_BALANCER_NAME}" --description "Target pool for load balancing web access to PCF instances" --region "${REGION_1}" --session-affinity "NONE"  --http-health-check "pcf-http-router-health-check-${SUBDOMAIN_TOKEN}" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" forwarding-rules create "${WS_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing web access to PCF instances." --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-websockets-${SUBDOMAIN_TOKEN}" --ip-protocol "TCP" --ports "443" --target-pool "${WS_LOAD_BALANCER_NAME}" --no-user-output-enabled
   echo "Websockets load balancer ${WS_LOAD_BALANCER_NAME} created."
 
   # TCP Routing
   echo "Creating TCP routing load balancer..."
   gcloud compute --project "${PROJECT}" addresses create "${TCP_LOAD_BALANCER_NAME}" --region "${REGION_1}" --no-user-output-enabled
   gcloud compute --project "${PROJECT}" target-pools create "${TCP_LOAD_BALANCER_NAME}" --description "Target pool for load balancing web access to PCF instances" --region "${REGION_1}" --session-affinity "NONE" --no-user-output-enabled
-  gcloud compute --project "${PROJECT}" forwarding-rules create "${TCP_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing web access to PCF instances." --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-tcp-router-${DOMAIN_TOKEN}" --ip-protocol "TCP" --ports "1024-65535" --target-pool "${TCP_LOAD_BALANCER_NAME}" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" forwarding-rules create "${TCP_LOAD_BALANCER_NAME}" --description "Forwarding rule for load balancing web access to PCF instances." --region "${REGION_1}" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-tcp-router-${SUBDOMAIN_TOKEN}" --ip-protocol "TCP" --ports "1024-65535" --target-pool "${TCP_LOAD_BALANCER_NAME}" --no-user-output-enabled
   echo "TCP load balancer ${TCP_LOAD_BALANCER_NAME} created."
 
   echo "You will need the following values to configure the PCF tile in Operations Managers if you do not use install.sh (it will set them for you)"
-  echo "  Load balancers for Router: tcp:pcf-websockets-${DOMAIN_TOKEN},http:pcf-http-router-${DOMAIN_TOKEN}"
-  echo "  Load balancer for Deigo Brain: tcp:pcf-ssh-${DOMAIN_TOKEN}"
-  echo "  Load balancer for TCP Router: tcp:pcf-tcp-router-${DOMAIN_TOKEN}"
+  echo "  Load balancers for Router: tcp:pcf-websockets-${SUBDOMAIN_TOKEN},http:pcf-http-router-${SUBDOMAIN_TOKEN}"
+  echo "  Load balancer for Deigo Brain: tcp:pcf-ssh-${SUBDOMAIN_TOKEN}"
+  echo "  Load balancer for TCP Router: tcp:pcf-tcp-router-${SUBDOMAIN_TOKEN}"
 }
 
 dns () {
@@ -217,18 +233,18 @@ ops_manager () {
 
   # make sure we can get to it
   echo "Configuring DNS for Operations Manager..."
-  gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}" --no-user-output-enabled
-  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${DOMAIN_TOKEN}" --region "${REGION_1}"  | jq --raw-output ".address"`
+  gcloud compute --project "${PROJECT}" addresses create "pcf-ops-manager-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --no-user-output-enabled
+  OPS_MANAGER_ADDRESS=`gcloud compute --project "${PROJECT}" --format json addresses describe "pcf-ops-manager-${SUBDOMAIN_TOKEN}" --region "${REGION_1}"  | jq --raw-output ".address"`
   gcloud dns record-sets transaction start -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   gcloud dns record-sets transaction add -z "${DNS_ZONE}" --name "${OPS_MANAGER_FQDN}" --ttl "${DNS_TTL}" --type A ${OPS_MANAGER_ADDRESS} --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   gcloud dns record-sets transaction execute -z "${DNS_ZONE}" --transaction-file="${WORKDIR}/dns-transaction-${DNS_ZONE}.xml" --no-user-output-enabled
   echo "Updated Operations Manager DNS for ${OPS_MANAGER_FQDN} to ${OPS_MANAGER_ADDRESS}."
 
   echo "Creating Operations Manager instance..."
-  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${DOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${DOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/cloud-platform" --service-account "${SERVICE_ACCOUNT}" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${SUBDOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${SUBDOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/cloud-platform" --service-account "${SERVICE_ACCOUNT}" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/ubuntu-key -b 4096 -C ubuntu@local > /dev/null
   sed -i.gcp '1s/^/ubuntu: /' ${KEYDIR}/ubuntu-key.pub
-  gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${DOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=${KEYDIR}/ubuntu-key.pub" --no-user-output-enabled
+  gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${SUBDOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=${KEYDIR}/ubuntu-key.pub" --no-user-output-enabled
   mv ${KEYDIR}/ubuntu-key.pub.gcp ${KEYDIR}/ubuntu-key.pub
   echo "Operations Manager instance created..."
 
@@ -259,7 +275,7 @@ ops_manager () {
   curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/properties" \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${DIRECTOR_SETTINGS}"
 
-  NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT; envsubst < api-calls/network-settings.json ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
+  NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT; envsubst < api-calls/networks-setup.json ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
   curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/networks" \
       -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${NETWORK_SETTINGS}"
 
@@ -290,13 +306,13 @@ service_broker () {
   echo "Preparing for GCP Service Broker installation..."
 
   # prepare for the google service broker
-  echo "Setting up service account service-broker-${DOMAIN_TOKEN}"
-  gcloud iam service-accounts create "service-broker-${DOMAIN_TOKEN}" --display-name "Google Cloud Platform Service Broker" --no-user-output-enabled
-  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json" --iam-account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner" --no-user-output-enabled
-  echo "Service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
+  echo "Setting up service account service-broker-${SUBDOMAIN_TOKEN}"
+  gcloud iam service-accounts create "service-broker-${SUBDOMAIN_TOKEN}" --display-name "Google Cloud Platform Service Broker" --no-user-output-enabled
+  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-service-broker-${SUBDOMAIN_TOKEN}.json" --iam-account service-broker-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner" --no-user-output-enabled
+  echo "Service account service-broker-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
 
-  GCP_BROKER_DATABASE_NAME="gcp-service-broker-${GCP_VERSION_TOKEN}-${DOMAIN_TOKEN}-"`random_phrase`
+  GCP_BROKER_DATABASE_NAME="gcp-service-broker-${GCP_VERSION_TOKEN}-${SUBDOMAIN_TOKEN}-"`random_phrase`
   # TODO: store this in a file that won't go away if we reboot
   echo "${GCP_BROKER_DATABASE_NAME}" > "${WORKDIR}/gcp-service-broker-db.name"
   echo "Creating ${GCP_BROKER_DATABASE_NAME} database for service broker..."
@@ -321,8 +337,8 @@ service_broker () {
     --ssl-cert="${KEYDIR}/gcp-service-broker-db-client.crt" --ssl-key="${KEYDIR}/gcp-service-broker-db-client.key" <<SQL
   GRANT ALL PRIVILEGES ON servicebroker.* TO 'pcf'@'%' WITH GRANT OPTION;
 SQL
-  echo "Service broker database created. Configred the service broker tile with user 'pcf' and service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com."
-  echo "Service broker service account credentials are at ${KEYDIR}/${PROJECT}-service-broker-${DOMAIN_TOKEN}.json"
+  echo "Service broker database created. Configred the service broker tile with user 'pcf' and service account service-broker-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com."
+  echo "Service broker service account credentials are at ${KEYDIR}/${PROJECT}-service-broker-${SUBDOMAIN_TOKEN}.json"
   echo "To connect to the database, use the following command-line: "
   echo "    mysql -uroot -p${DB_ROOT_PASSWORD} -h `cat \"${WORKDIR}/gcp-service-broker-db.ip\"` --ssl-ca=\"${KEYDIR}/gcp-service-broker-db-server.crt\"  --ssl-cert=\"${KEYDIR}/gcp-service-broker-db-client.crt\" --ssl-key=\"${KEYDIR}/gcp-service-broker-db-client.key\""
 }
@@ -331,12 +347,12 @@ stackdriver () {
   echo "Preparing for GCP Stackdriver Nozzle installation..."
 
   # prepare for the stackdriver nozzle
-  echo "Setting up service account stackdriver-nozzle-${DOMAIN_TOKEN}"
-  gcloud iam --project "${PROJECT}" service-accounts create "stackdriver-nozzle-${DOMAIN_TOKEN}" --display-name "PCF Stackdriver Nozzle" --no-user-output-enabled
-  gcloud iam --project "${PROJECT}" service-accounts keys create "${KEYDIR}/${PROJECT}-stackdriver-nozzle-${DOMAIN_TOKEN}.json" --iam-account stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.logWriter" --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:stackdriver-nozzle-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.configWriter" --no-user-output-enabled
-  echo "Service account service-broker-${DOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
+  echo "Setting up service account stackdriver-nozzle-${SUBDOMAIN_TOKEN}"
+  gcloud iam --project "${PROJECT}" service-accounts create "nozzle-${SUBDOMAIN_TOKEN}" --display-name "PCF Stackdriver Nozzle" --no-user-output-enabled
+  gcloud iam --project "${PROJECT}" service-accounts keys create "${KEYDIR}/${PROJECT}-nozzle-${SUBDOMAIN_TOKEN}.json" --iam-account "nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.logWriter" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.configWriter" --no-user-output-enabled
+  echo "Service account nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
 }
 
 START_TIMESTAMP=`date`
@@ -345,6 +361,7 @@ echo "Started preparing Google Cloud Platform project ${PROJECT} to install Clou
 prepare_env
 overrides
 setup
+apis
 network
 security
 ssl_certs
