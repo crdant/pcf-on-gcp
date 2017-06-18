@@ -1,0 +1,25 @@
+{
+  "properties": {
+    ".properties.container_networking": {
+      "type": "selector",
+      "configurable": true,
+      "credential": false,
+      "value": "enable",
+      "optional": false
+    },
+    ".properties.container_networking.enable.network_cidr": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${CNI_CIDR}",
+      "optional": true
+    },
+    ".properties.nfs_volume_driver": {
+      "type": "selector",
+      "configurable": true,
+      "credential": false,
+      "value": "enable",
+      "optional": false
+    }
+  }
+}

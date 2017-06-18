@@ -1,0 +1,172 @@
+{
+  "properties": {
+    ".mysql_monitor.recipient_email": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${EMAIL}",
+      "optional": false
+    },
+    ".properties.system_database": {
+      "type": "selector",
+      "configurable": true,
+      "credential": false,
+      "value": "external",
+      "optional": false
+    },
+    ".properties.system_database.external.host": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_HOST}",
+      "optional": false
+    },
+    ".properties.system_database.external.port": {
+      "type": "port",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_PORT}",
+      "optional": false
+    },
+    ".properties.system_database.external.account_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.account_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.app_usage_service_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.app_usage_service_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.autoscale_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.autoscale_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.ccdb_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.ccdb_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.diego_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.diego_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.networkpolicyserver_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.networkpolicyserver_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.nfsvolume_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.nfsvolume_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.notifications_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.notifications_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.routing_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.routing_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    },
+    ".properties.system_database.external.uaa_username": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_RDS_USER}",
+      "optional": false
+    },
+    ".properties.system_database.external.uaa_password": {
+      "type": "secret",
+      "configurable": true,
+      "credential": true,
+      "value": { "secret": { "value": "${BOSH_RDS_PASSWORD}" } },
+      "optional": false
+    }
+  }
+}

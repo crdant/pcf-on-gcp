@@ -1,0 +1,11 @@
+{
+  "properties": {
+    ".properties.security_acknowledgement": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "X",
+      "optional": false
+    }
+  }
+}

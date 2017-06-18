@@ -1,0 +1,25 @@
+{
+  "properties": {
+    ".cloud_controller.allow_app_ssh_access": {
+      "type": "boolean",
+      "configurable": true,
+      "credential": false,
+      "value": ${ALLOW_SSH},
+      "optional": false
+    },
+    ".cloud_controller.default_app_ssh_access": {
+      "type": "boolean",
+      "configurable": true,
+      "credential": false,
+      "value": ${DEFAULT_SSH},
+      "optional": false
+    },
+    ".cloud_controller.enable_custom_buildpacks": {
+      "type": "boolean",
+      "configurable": true,
+      "credential": false,
+      "value": ${ALLOW_BUILDPACKS},
+      "optional": false
+    }
+  }
+}

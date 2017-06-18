@@ -1,0 +1,18 @@
+{
+  "properties": {
+    ".cloud_controller.system_domain": {
+      "type": "wildcard_domain",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_SYSTEM_DOMAIN}",
+      "optional": false
+    },
+    ".cloud_controller.apps_domain": {
+      "type": "wildcard_domain",
+      "configurable": true,
+      "credential": false,
+      "value": "${PCF_APPS_DOMAIN}",
+      "optional": false
+    }
+  }
+}

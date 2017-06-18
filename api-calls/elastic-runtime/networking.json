@@ -1,0 +1,63 @@
+{
+  "properties": {
+    ".router.disable_insecure_cookies": {
+      "type": "boolean",
+      "configurable": true,
+      "credential": false,
+      "value": true,
+      "optional": false
+    },
+    ".properties.networking_point_of_entry": {
+      "type": "selector",
+      "configurable": true,
+      "credential": false,
+      "value": "external_ssl",
+      "optional": false
+    },
+    ".properties.networking_point_of_entry.external_ssl.ssl_rsa_certificate": {
+      "type": "rsa_cert_credentials",
+      "configurable": true,
+      "credential": true,
+      "value": {
+        "private_key_pem": "${ROUTER_PRIVATE_KEY}",
+        "cert_pem": "${ROUTER_CERTIFICATE}"
+      },
+      "optional": false
+    },
+    ".properties.networking_point_of_entry.external_ssl.ssl_ciphers": {
+      "type": "text",
+      "configurable": true,
+      "credential": false,
+      "value": null,
+      "optional": true
+    },
+    ".properties.route_services": {
+      "type": "selector",
+      "configurable": true,
+      "credential": false,
+      "value": "enable",
+      "optional": false
+    },
+    ".properties.route_services.enable.ignore_ssl_cert_verification": {
+      "type": "boolean",
+      "configurable": true,
+      "credential": false,
+      "value": true,
+      "optional": false
+    },
+    ".properties.tcp_routing": {
+      "type": "selector",
+      "configurable": true,
+      "credential": false,
+      "value": "enable",
+      "optional": false
+    },
+    ".properties.tcp_routing.enable.reservable_ports": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "${TCP_ROUTER_PORTS}",
+      "optional": false
+    }
+  }
+}
