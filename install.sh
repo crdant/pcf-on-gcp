@@ -30,6 +30,7 @@ init () {
   INSTALL_ISOLATION=0
   INSTALL_WINDOWS=0
   INSTALL_SCHEDULER=0
+  INSTALL_STACKDRIVER=0
 }
 
 parse_args () {
@@ -54,8 +55,8 @@ parse_args () {
           "scs")
             INSTALL_SCS=1
             ;;
-          "azure")
-            INSTALL_AWS=1
+          "gcp")
+            INSTALL_GCP=1
             ;;
           "pcc")
             INSTALL_PCC=1
@@ -75,6 +76,9 @@ parse_args () {
           "windows")
             INSTALL_WINDOWS=1
             ;;
+          "stackdriver")
+            INSTALL_STACKDRIVER=1
+            ;;
           "default")
             set_defaults
             ;;
@@ -84,13 +88,14 @@ parse_args () {
             INSTALL_RABBIT=1
             INSTALL_REDIS=1
             INSTALL_SCS=1
-            INSTALL_AWS=1
+            INSTALL_GCP=1
             INSTALL_PCC=1
             INSTALL_SCHEDULER=1
             INSTALL_IPSEC=1
             INSTALL_PUSH=1
             INSTALL_ISOLATION=1
             INSTALL_WINDOWS=1
+            INSTALL_STACKDRIVER=1
             ;;
           "--help")
             usage
@@ -288,8 +293,25 @@ isolation_segments () {
 
 scheduler () {
   add_to_install "Isolation Segments" "${SCHEDULER_SLUG}" "${SCHEDULER_VERSION}"
-  store_var ISOLATION_GUID "${GUID}"
+  store_var SCHEDULER_GUID "${GUID}"
   set_networks_azs "${SCHEDULER_SLUG}" "${TILES_NETWORK_NAME}"
+}
+
+
+stackdriver () {
+  add_to_install "Stackdriver Nozzle" "${STACKDRIVER_SLUG}" "${STACKDRIVER_VERSION_NUM}"
+  store_var STACKDRIVER_GUID "${GUID}"
+
+  # create UAA user
+  uaac target "https://uaa.${PCF_SYSTEM_DOMAIN}" --skip-ssl-validation
+  # NOTE: the secret being set here will not work, it is not correct and the correct one does not appear
+  #       to be available without decoding installation.yml...stay tuned
+  local uaa_admin_secret=`get_credential cf .uaa.admin_client_credentials`
+  uaac token client get admin -s "${uaa_admin_secret}"
+  uaac -t user add stackdriver-nozzle --password ${STACKDRIVER_NOZZLE_PASSWORD} --emails na
+  # these probably need Cloud Foundry installed before you can do anything with them
+  uaac -t member add cloud_controller.admin_read_only stackdriver-nozzle
+  uaac -t member add doppler.firehose stackdriver-nozzle
 }
 
 ipsec () {
