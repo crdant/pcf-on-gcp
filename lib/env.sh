@@ -25,6 +25,7 @@ prepare_env () {
   KEYDIR="${BASEDIR}/keys"
   WORKDIR="${BASEDIR}/work"
   PASSWORD_LIST="${KEYDIR}/password-list"
+  ENV_OUTPUTS="${WORKDIR}/installed-env.sh"
 
   INFRASTRUCTURE_CIDR="10.0.0.0/26"
   INFRASTRUCTURE_RESERVED="10.0.0.1"
@@ -123,4 +124,29 @@ product_slugs () {
   ISOLATION_SLUG="isolation-segment"
   SCHEDULER_SLUG="p-scheduler-for-pcf"
   WINDOWS_SLUG="runtime-for-windows"
+}
+
+
+store_var () {
+  set -x
+  variable="${1}"
+  value="${2}"
+
+  if [ -z "${value}" ] ; then
+    code="echo \$${variable}"
+    value=`eval $code`
+  fi
+
+  eval "$variable=${value}"
+  echo "$variable=${value}" >> "${ENV_OUTPUTS}"
+  set +x
+}
+
+store_json_var () {
+  json="${1}"
+  variable="${2}"
+  jspath="${3}"
+
+  value=`echo "${json}" | jq --raw-output "${jspath}"`
+  store_var ${variable} ${value}
 }
