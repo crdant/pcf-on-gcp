@@ -15,3 +15,7 @@ install_logs () {
   INSTALL_ID=$1
   curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/installations/${INSTALL_ID}/logs" -H "Content-Type: application/json" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}"
 }
+
+unlock_ops_manager () {
+  curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/unlock" -X PUT -H "Content-Type: application/json" -d "{\"passphrase\": \"$DECRYPTION_PASSPHRASE\"}"
+}

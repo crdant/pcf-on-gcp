@@ -6,7 +6,7 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
-. "${BASEDIR}/lib/unlock_ops_manager.sh"
+. "${BASEDIR}/lib/ops_manager.sh"
 
 . "${BASEDIR}/lib/setup.sh"
 
