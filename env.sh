@@ -26,7 +26,10 @@ fi
 . "${BASEDIR}/lib/resources.sh"
 . "${BASEDIR}/lib/assets.sh"
 . "${BASEDIR}/lib/setup.sh"
-. "${BASEDIR}/lib/unlock_ops_manager.sh"
+. "${BASEDIR}/lib/elastic_runtime.sh"
+. "${BASEDIR}/lib/ops_manager.sh"
+. "${BASEDIR}/lib/ops_manager.sh"
+
 prepare_env
 overrides
 
@@ -84,6 +87,43 @@ export PUSH_VERSION
 export STACKDRIVER_VERSION
 export STACKDRIVER_VERSION_TOKEN
 export STACKDRIVER_VERSION_NUM
+
+# versions
+export OPS_MANAGER_VERSION
+export OPS_MANAGER_VERSION_TOKEN
+export PCF_VERSION
+export STEMCELL_VERSION
+export MYSQL_VERSION
+export RABBIT_VERSION
+export REDIS_VERSION
+export PCC_VERSION
+export SCS_VERSION
+export SERVICE_BROKER_VERSION
+export WINDOWS_VERSION
+export ISOLATION_VERSION
+export IPSEC_VERSION
+export PUSH_VERSION
+export SSO_VERSION
+export SCHEDULER_VERSION
+
+# slugs
+export PCF_SLUG
+export PCF_OPSMAN_SLUG
+export OPS_MANAGER_SLUG
+export MYSQL_SLUG
+export REDIS_SLUG
+export RABBIT_SLUG
+export SERVICE_BROKER_SLUG
+export SCS_SLUG
+export PCC_SLUG
+export PUSH_SLUG
+export SSO_SLUG
+export IPSEC_SLUG
+export ISOLATION_SLUG
+export SCHEDULER_SLUG
+export WINDOWS_SLUG
+export STACKDRIVER_SLUG
+export SCHEDULER_SLUG
 
 export SSH_LOAD_BALANCER_NAME
 export HTTP_LOAD_BALANCER_NAME
