@@ -41,20 +41,36 @@ download_tile () {
   releases_url="https://network.pivotal.io/api/v2/products/${product}/releases"
   tile_file="$WORKDIR/${product}-${version_token}.pivotal"
 
-  echo "Release URL: $releases_url"
-  echo "File: $tile_file"
-
   if [ ! -f $tile_file ] ; then
     files_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .product_files .href"`
-    echo "Files URL: $files_url"
     download_post_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $files_url | jq --raw-output ".product_files[] | select( .aws_object_key | endswith(\"pivotal\") ) ._links .download .href"`
-    echo "Download Post URL: $download_post_url"
+    if [ -z "$download_post_url" ] ; then
+      file_groups_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $releases_url | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .file_groups .href"`
+      download_post_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $file_groups_url | jq --raw-output ".file_groups[] .product_files[] | select( .aws_object_key | endswith(\"pivotal\") ) ._links .download .href"`
+    fi
     download_url=`curl -qsLf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $download_post_url -w "%{url_effective}\n"`
-    echo "Download URL: $download_url"
     curl -qsLf -o $tile_file $download_url
   fi
 
   echo $tile_file
+}
+
+download_template () {
+  product=$1
+  version=$2
+  version_token=`echo ${version} | tr . - | tr ' ' - | tr -d ')' | tr -d '('`
+  numeric_version=`echo ${version} | sed 's/[^0-9.]*//g'`
+  releases_url="https://network.pivotal.io/api/v2/products/${product}/releases"
+  template_file="${WORKDIR}/${product}-${version_token}.json"
+
+  if [ ! -f $template_file ] ; then
+    files_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output ".releases[] | select( .version == \"$version\" ) ._links .product_files .href"`
+    download_post_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $files_url | jq --raw-output ".product_files[] | select( .aws_object_key | endswith(\"json\") ) ._links .download .href"`
+    download_url=`curl -qsLf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $download_post_url -w "%{url_effective}\n"`
+    curl -qsLf -o $template_file $download_url
+  fi
+
+  echo $template_file
 }
 
 download_addon () {
@@ -104,7 +120,7 @@ upload_stemcell () {
 
 upload_tile () {
   product_file=$1
-
+  echo "Uploading $product_file"
   login_ops_manager > /dev/null
   curl -q --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/available_products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
     -H "Accept: application/json" -F "product[file]=@${product_file}"
