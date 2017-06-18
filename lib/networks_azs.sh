@@ -11,11 +11,13 @@ get_networks_azs () {
 
 set_networks_azs () {
   product=$1
+  network=$2
 
   guid=`product_guid $1`
   login_ops_manager > /dev/null
 
   pick_singleton_availability_zone
+  DIRECTOR_NETWORK_NAME="${network}"
   networks_json=`export DIRECTOR_NETWORK_NAME SINGLETON_AVAILABILITY_ZONE PRIVATE_SUBNET_AVAIALBILITY_ZONE PRIVATE_SUBNET_2_AVAIALBILITY_ZONE; envsubst < api-calls/products/networks-and-azs.json ; unset DIRECTOR_NETWORK_NAME SINGLETON_AVAILABILITY_ZONE PRIVATE_SUBNET_AVAIALBILITY_ZONE PRIVATE_SUBNET_2_AVAIALBILITY_ZONE`
   curl -q --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${guid}/networks_and_azs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -H "Content-Type: application/json" -d "${networks_json}"
 }
