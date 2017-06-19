@@ -7,6 +7,8 @@ BASEDIR=`dirname $0`
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/login_ops_manager.sh"
+. "${BASEDIR}/lib/director.sh"
+. "${BASEDIR}/lib/ops_manager.sh"
 . "${BASEDIR}/lib/random_phrase.sh"
 . "${BASEDIR}/lib/generate_passphrase.sh"
 . "${BASEDIR}/lib/ssl_certificates.sh"
@@ -241,7 +243,7 @@ ops_manager () {
   echo "Updated Operations Manager DNS for ${OPS_MANAGER_FQDN} to ${OPS_MANAGER_ADDRESS}."
 
   echo "Creating Operations Manager instance..."
-  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-${REGION_1}-${SUBDOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${SUBDOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/cloud-platform" --service-account "${SERVICE_ACCOUNT}" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" instances create "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${SUBDOMAIN_TOKEN}" --zone ${AVAILABILITY_ZONE_1} --machine-type "n1-standard-1" --subnet "pcf-infra-${REGION_1}-${SUBDOMAIN_TOKEN}" --private-network-ip "10.0.0.4" --address "https://www.googleapis.com/compute/v1/projects/${PROJECT}/regions/${REGION_1}/addresses/pcf-ops-manager-${SUBDOMAIN_TOKEN}" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/cloud-platform" --service-account "${SERVICE_ACCOUNT}" --tags "http-server","https-server","pcf-opsmanager" --image-family "pcf-ops-manager" --boot-disk-size "200" --boot-disk-type "pd-standard" --boot-disk-device-name "pcf-operations-manager" --no-user-output-enabled
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/ubuntu-key -b 4096 -C ubuntu@local > /dev/null
   sed -i.gcp '1s/^/ubuntu: /' ${KEYDIR}/ubuntu-key.pub
   gcloud compute instances add-metadata "pcf-ops-manager-${OPS_MANAGER_VERSION_TOKEN}-${SUBDOMAIN_TOKEN}" --zone "${AVAILABILITY_ZONE_1}" --metadata-from-file "ssh-keys=${KEYDIR}/ubuntu-key.pub" --no-user-output-enabled
@@ -256,37 +258,21 @@ ops_manager () {
   echo "Setting up Operations Manager authentication and adminsitrative user..."
 
   # this line looks a little funny, but it's to make sure we keep the passwords out of the environment
-  SETUP_JSON=`export ADMIN_PASSWORD DECRYPTION_PASSPHRASE ; envsubst < api-calls/setup.json ; unset ADMIN_PASSWORD ; unset DECRYPTION_PASSPHRASE`
+  SETUP_JSON=`export ADMIN_PASSWORD DECRYPTION_PASSPHRASE ; envsubst < api-calls/ops-manager/setup.json ; unset ADMIN_PASSWORD ; unset DECRYPTION_PASSPHRASE`
   curl -qsLf --insecure "${OPS_MANAGER_API_ENDPOINT}/setup" -X POST -H "Content-Type: application/json" -d "${SETUP_JSON}"
   echo "Operation manager configured. Your username is admin and password is ${ADMIN_PASSWORD}."
 
   # log in to the ops_manager so the script can manipulate it later
   login_ops_manager
 
-  # prepare for downloading products from the Pivotal Network
-  echo "Providing Pivotal Network settings to Operations Manager..."
-  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/settings/pivotal_network_settings" \
-      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" \
-      -H "Content-Type: application/json" -d "{ \"pivotal_network_settings\": { \"api_token\": \"$PIVNET_TOKEN\" } }"
-  echo "Operations Manager installed and prepared for tile configruation. If you are using install.sh, be sure to create BOSH network ${DIRECTOR_NETWORK_NAME}"
+  echo "Setting up BOSH director..."
+  set_director_config
+  set_availability_zones
+  create_director_networks
+  assign_director_networks
 
-  echo "Configuring the BOSH Director (some settings are not done via the API)..."
-  DIRECTOR_SETTINGS=`export DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT; envsubst < api-calls/director.json ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
-  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/properties" \
-      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${DIRECTOR_SETTINGS}"
-
-  NETWORK_SETTINGS=`export DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT; envsubst < api-calls/networks-setup.json ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
-  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/networks" \
-      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${NETWORK_SETTINGS}"
-
-  AVAILABILITY_ZONES=`export AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/availability_zones.json ; unset  DIRECTOR_NETWORK_NAME PROJECT SERVICE_ACCOUNT`
-  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/availability_zones" \
-      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${AVAILABILITY_ZONES}"
-
-  NETWORK_AND_AZ=`export DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1; envsubst < api-calls/director-network-and-az.json ; unset  DIRECTOR_NETWORK_NAME AVAILABILITY_ZONE_1`
-  curl -qsLf --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/director/network_and_az" \
-      -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -d "${NETWORK_AND_AZ}"
-
+  echo "Setting up subnets for services network..."
+  services_network
   echo "BOSH Director created"
 }
 
