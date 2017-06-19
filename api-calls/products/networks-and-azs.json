@@ -1,7 +1,7 @@
 {
   "networks_and_azs": {
     "singleton_availability_zone": {
-      "name": "${AVAILABILITY_ZONE_1}"
+      "name": "${SINGLETON_AVAILABILITY_ZONE}"
     },
     "other_availability_zones": [
       {
@@ -15,7 +15,10 @@
       }
     ],
     "network": {
-      "name": "${DIRECTOR_NETWORK_NAME}"
+      "name": "${TILES_NETWORK_NAME}"
+    },
+    "service_network": {
+      "name": "${SERVICE_NETWORK_NAME}"
     }
   }
 }
