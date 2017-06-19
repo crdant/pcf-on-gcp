@@ -6,8 +6,8 @@ set_pcf_domains () {
 
 set_pcf_networking () {
   login_ops_manager
-  ROUTER_PRIVATE_KEY=`cat ${KEYDIR}/pcf-router-${DOMAIN_TOKEN}.key | perl -pe 's#\n#\x5c\x5c\x6e#g'`
-  ROUTER_CERTIFICATE=`cat ${KEYDIR}/pcf-router-${DOMAIN_TOKEN}.crt | perl -pe 's#\n#\x5c\x5c\x6e#g'`
+  ROUTER_PRIVATE_KEY=`cat ${KEYDIR}/pcf-router-${SUBDOMAIN_TOKEN}.key | perl -pe 's#\n#\x5c\x5c\x6e#g'`
+  ROUTER_CERTIFICATE=`cat ${KEYDIR}/pcf-router-${SUBDOMAIN_TOKEN}.crt | perl -pe 's#\n#\x5c\x5c\x6e#g'`
 
   networking_json=`export ROUTER_PRIVATE_KEY ROUTER_CERTIFICATE TCP_ROUTER_PORTS; envsubst < api-calls/elastic-runtime/networking.json ; unset ROUTER_PRIVATE_KEY ROUTER_CERTIFICATE TCP_ROUTER_PORTS`
   set_properties "${PCF_OPSMAN_SLUG}" "${networking_json}"
