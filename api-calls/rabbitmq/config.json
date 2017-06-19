@@ -1,0 +1,32 @@
+{
+  "properties": {
+    ".rabbitmq-server.server_admin_credentials": {
+      "type": "simple_credentials",
+      "configurable": true,
+      "credential": true,
+      "value": {
+        "identity": "bugs",
+        "password": "${RABBIT_ADMIN_PASSWORD}"
+      },
+      "optional": false
+    },
+    ".rabbitmq-server.rsa_certificate": {
+      "type": "rsa_cert_credentials",
+      "configurable": true,
+      "credential": true,
+      "value": {
+        "private_key_pem": "${RABBIT_PRIVATE_KEY}",
+        "cert_pem": "${RABBIT_CERTIFICATE}"
+      },
+      "optional": true
+    },
+  ".rabbitmq-server.plugins": {
+    "value": [
+      "rabbitmq_management",
+      "rabbitmq_mqtt",
+      "rabbitmq_stomp",
+      "rabbitmq_amqp1_0"
+    ]
+  }
+  }
+}
