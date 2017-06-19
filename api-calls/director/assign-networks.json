@@ -4,7 +4,7 @@
       "name": "${AVAILABILITY_ZONE_1}"
     },
     "network": {
-      "name": "${DIRECTOR_NETWORK_NAME}"
+      "name": "${INFRASTRUCTURE_NETWORK_NAME}"
     }
   }
 }

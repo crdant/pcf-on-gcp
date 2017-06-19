@@ -2,26 +2,50 @@
   "icmp_checks_enabled": true,
   "networks": [
     {
-      "name": "${SERVICE_NETWORK_NAME}",
-      "service_network": true,
+      "name": "${INFRASTRUCTURE_NETWORK_NAME}",
+      "service_network": false,
       "subnets": [{
-        "iaas_identifier": "${SERVICE_NETWORK_NAME}",
-        "cidr": "${SERVICES_CIDR}",
-        "reserved_ip_ranges": "10.0.0.1",
-        "dns": "8.8.8.8,8.8.4.4",
+        "iaas_identifier": "pcf-${SUBDOMAIN_TOKEN}/pcf-infra-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}",
+        "cidr": "${INFRASTRUCTURE_CIDR}",
+        "reserved_ip_ranges": "${INFRASTRUCTURE_RESERVED}",
+        "dns": "${DNS_SERVERS}",
+        "gateway": "${INFRASTRUCTURE_GATEWAY}",
+        "availability_zone_names": ["${AVAILABILITY_ZONE_1}", "${AVAILABILITY_ZONE_2}", "${AVAILABILITY_ZONE_3}"]
+      }]
+    },
+    {
+      "name": "${DEPLOYMENT_NETWORK_NAME}",
+      "service_network": false,
+      "subnets": [{
+        "iaas_identifier": "pcf-${SUBDOMAIN_TOKEN}/pcf-deployment-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}",
+        "cidr": "${DEPLOYMENT_CIDR}",
+        "reserved_ip_ranges": "${DEPLOYMENT_RESERVED}",
+        "dns": "${DNS_SERVERS}",
         "gateway": "10.0.0.100",
         "availability_zone_names": ["${AVAILABILITY_ZONE_1}", "${AVAILABILITY_ZONE_2}", "${AVAILABILITY_ZONE_3}"]
       }]
     },
     {
-      "name": "${DIRECTOR_NETWORK_NAME}",
+      "name": "${TILES_NETWORK_NAME}",
       "service_network": false,
       "subnets": [{
-        "iaas_identifier": "${DIRECTOR_NETWORK_NAME}",
-        "cidr": "${CIDR}",
-        "reserved_ip_ranges": "10.0.0.1-10.0.0.9",
-        "dns": "8.8.8.8,8.8.4.4",
-        "gateway": "10.0.0.1",
+        "iaas_identifier": "pcf-${SUBDOMAIN_TOKEN}/pcf-tiles-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}",
+        "cidr": "${TILES_CIDR}",
+        "reserved_ip_ranges": "${TILES_RESERVED}",
+        "dns": "${DNS_SERVERS}",
+        "gateway": "${TILES_GATEWAY}",
+        "availability_zone_names": ["${AVAILABILITY_ZONE_1}", "${AVAILABILITY_ZONE_2}", "${AVAILABILITY_ZONE_3}"]
+      }]
+    },
+    {
+      "name": "${SERVICES_NETWORK_NAME}",
+      "service_network": true,
+      "subnets": [{
+        "iaas_identifier": "pcf-${SUBDOMAIN_TOKEN}/pcf-services-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}",
+        "cidr": "${SERVICES_CIDR}",
+        "reserved_ip_ranges": "${SERVICES_RESERVED}",
+        "dns": "${DNS_SERVERS}",
+        "gateway": "${SERVICES_GATEWAY}",
         "availability_zone_names": ["${AVAILABILITY_ZONE_1}", "${AVAILABILITY_ZONE_2}", "${AVAILABILITY_ZONE_3}"]
       }]
     }

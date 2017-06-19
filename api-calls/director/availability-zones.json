@@ -2,7 +2,6 @@
   "availability_zones": [
     { "name": "${AVAILABILITY_ZONE_1}" },
     { "name": "${AVAILABILITY_ZONE_2}" },
-    { "name": "${AVAILABILITY_ZONE_3}" },
-
+    { "name": "${AVAILABILITY_ZONE_3}" }
   ]
 }
