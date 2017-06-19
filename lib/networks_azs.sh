@@ -11,22 +11,22 @@ get_networks_azs () {
 
 set_networks_azs () {
   product=$1
-  network=$2
 
   guid=`product_guid $1`
   login_ops_manager > /dev/null
 
   pick_singleton_availability_zone
-  DIRECTOR_NETWORK_NAME="${network}"
-  networks_json=`export DIRECTOR_NETWORK_NAME SINGLETON_AVAILABILITY_ZONE PRIVATE_SUBNET_AVAIALBILITY_ZONE PRIVATE_SUBNET_2_AVAIALBILITY_ZONE; envsubst < api-calls/products/networks-and-azs.json ; unset DIRECTOR_NETWORK_NAME SINGLETON_AVAILABILITY_ZONE PRIVATE_SUBNET_AVAIALBILITY_ZONE PRIVATE_SUBNET_2_AVAIALBILITY_ZONE`
+  networks_json=`export TILES_NETWORK_NAME SERVICE_NETWORK_NAME SINGLETON_AVAILABILITY_ZONE AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3; envsubst < api-calls/products/networks-and-azs.json ; unset TILES_NETWORK_NAME SERVICE_NETWORK_NAME SINGLETON_AVAILABILITY_ZONE AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 AVAILABILITY_ZONE_3`
   curl -q --insecure -X PUT "${OPS_MANAGER_API_ENDPOINT}/staged/products/${guid}/networks_and_azs" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" -H "Accept: application/json" -H "Content-Type: application/json" -d "${networks_json}"
 }
 
 pick_singleton_availability_zone () {
-  FLIP=$(($(($RANDOM%10))%2))
-  if [ $FLIP -eq 1 ] ; then
-    SINGLETON_AVAILABILITY_ZONE="${PRIVATE_SUBNET_AVAIALBILITY_ZONE}"
+  ROLL=$(($(($RANDOM%10))%3))
+  if [ $ROLL -eq 1 ] ; then
+    SINGLETON_AVAILABILITY_ZONE="${AVAILABILITY_ZONE_1}"
+  elif [ $ROLL -eq 2 ] ; then
+    SINGLETON_AVAILABILITY_ZONE="${AVAILABILITY_ZONE_2}"
   else
-    SINGLETON_AVAILABILITY_ZONE="${PRIVATE_SUBNET_2_AVAIALBILITY_ZONE}"
+    SINGLETON_AVAILABILITY_ZONE="${AVAILABILITY_ZONE_3}"
   fi
 }
