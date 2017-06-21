@@ -20,13 +20,14 @@ prepare_env () {
 
   DNS_ZONE=`echo ${SUBDOMAIN} | tr . -`
   DNS_TTL=60
-  CIDR="10.0.0.0/20"
+  CIDR="10.0.0.0/12"
   ALL_INTERNET="0.0.0.0/0"
   KEYDIR="${BASEDIR}/keys"
   WORKDIR="${BASEDIR}/work"
   PASSWORD_LIST="${KEYDIR}/password-list"
   ENV_OUTPUTS="${WORKDIR}/installed-env.sh"
 
+  DNS_SERVERS="8.8.8.8,8.8.4.4"
   INFRASTRUCTURE_CIDR="10.0.0.0/26"
   INFRASTRUCTURE_RESERVED="10.0.0.1"
   INFRASTRUCTURE_GATEWAY="10.0.0.1-10.0.0.10"
@@ -48,17 +49,12 @@ prepare_env () {
   INFRASTRUCTURE_NETWORK_NAME="gcp-${REGION_1}-infrastructure"
   DEPLOYMENT_NETWORK_NAME="gcp-${REGION_1}-deployment"
   TILES_NETWORK_NAME="gcp-${REGION_1}-tiles"
-  SERVICE_NETWORK_NAME="gcp-${REGION_1}-services"
+  SERVICES_NETWORK_NAME="gcp-${REGION_1}-services"
 
   BUILDPACKS_STORAGE_BUCKET="buildpacks-pcf-${SUBDOMAIN_TOKEN}"
   DROPLETS_STORAGE_BUCKET="droplets-pcf-${SUBDOMAIN_TOKEN}"
   PACKAGES_STORAGE_BUCKET="packages-pcf-${SUBDOMAIN_TOKEN}"
   RESOURCES_STORAGE_BUCKET="resources-pcf-${SUBDOMAIN_TOKEN}"
-
-
-  PUSH_VERSION="1.8.0"
-  ISOLATION_VERSION="1.10.0-rc.2"
-  SCHEDULER_VERSION
 
   SSH_LOAD_BALANCER_NAME="pcf-ssh-${SUBDOMAIN_TOKEN}"
   HTTP_LOAD_BALANCER_NAME="pcf-http-router-${SUBDOMAIN_TOKEN}"
@@ -83,8 +79,10 @@ set_versions () {
   OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
   PCF_VERSION="1.11.0"
   STEMCELL_VERSION="3421.3"
-  MYSQL_VERSION="1.9.4"
-  RABBIT_VERSION="1.8.8"
+  SERVICES_STEMCELL_VERSION="3363.25"
+
+  MYSQL_VERSION="2.0.0"
+  RABBIT_VERSION="1.8.7"
   REDIS_VERSION="1.8.2"
   PCC_VERSION="1.0.4"
   SCS_VERSION="1.4.0"
@@ -103,7 +101,7 @@ product_slugs () {
   PCF_SLUG="elastic-runtime"
   PCF_OPSMAN_SLUG="cf"
   OPS_MANAGER_SLUG="ops-manager"
-  MYSQL_SLUG="p-mysql"
+  MYSQL_SLUG="pivotal-mysql"
   REDIS_SLUG="p-redis"
   RABBIT_SLUG="p-rabbitmq"
   SERVICE_BROKER_SLUG="gcp-service-broker"
@@ -120,7 +118,6 @@ product_slugs () {
 
 
 store_var () {
-  set -x
   variable="${1}"
   value="${2}"
 
@@ -131,7 +128,6 @@ store_var () {
 
   eval "$variable=${value}"
   echo "$variable=${value}" >> "${ENV_OUTPUTS}"
-  set +x
 }
 
 store_json_var () {
