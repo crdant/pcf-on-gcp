@@ -1,0 +1,64 @@
+{
+  "properties": {
+    ".on-demand-broker.enable_single_node_plan": {
+      "type": "boolean",
+      "configurable": true,
+      "credential": false,
+      "value": true,
+      "optional": true
+    },
+    ".on-demand-broker.solo_plan_instance_quota": {
+      "type": "integer",
+      "configurable": true,
+      "credential": false,
+      "value": 10,
+      "optional": false
+    },
+    ".on-demand-broker.plan_name": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "solo",
+      "optional": false
+    },
+    ".on-demand-broker.plan_description": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "Single node RabbitMQ dedicated instance",
+      "optional": false
+    },
+    ".on-demand-broker.plan_features": {
+      "type": "string",
+      "configurable": true,
+      "credential": false,
+      "value": "RabbitMQ 3.6.9",
+      "optional": false
+    },
+    ".on-demand-broker.rmq_vm_type": {
+      "type": "vm_type_dropdown",
+      "configurable": true,
+      "credential": false,
+      "value": "medium",
+      "optional": false
+    },
+    ".on-demand-broker.persistent_disk_type": {
+      "type": "disk_type_dropdown",
+      "configurable": true,
+      "credential": false,
+      "value": "10240",
+      "optional": false
+    },
+    ".on-demand-broker.az_placement": {
+      "type": "service_network_az_multi_select",
+      "configurable": true,
+      "credential": false,
+      "value": [
+        "${AVAILABILITY_ZONE_1}",
+        "${AVAILABILITY_ZONE_2}",
+        "${AVAILABILITY_ZONE_3}"
+      ],
+      "optional": false
+    }
+  }
+}

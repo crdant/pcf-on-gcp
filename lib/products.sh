@@ -101,21 +101,20 @@ download_stemcell () {
   files_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" "$releases_url" | jq --raw-output "[.releases[] | select( .version | startswith(\"$version\") ) ] | max_by(.release_date) ._links .product_files .href"`
   download_post_url=`curl -qsLf -H "Authorization: Token $PIVNET_TOKEN" $files_url | jq --raw-output ".product_files[] | select( .aws_object_key | contains(\"google\") ) ._links .download .href"`
   download_url=`curl -qsLf -X POST -d "" -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Token $PIVNET_TOKEN" $download_post_url -w "%{url_effective}\n"`
-  stemcell_file=`echo ${download_url##*/} | cut -d \? -f 1`
-  if [ ! -f $stemcell_file ] ; then
-    curl -qsLf -o "${WORKDIR}/$stemcell_file" $download_url
-  fi
 
-  echo "${WORKDIR}/$stemcell_file"
+  pushd ${WORKDIR} > /dev/null
+  stemcell_filename=`curl -qsf --remote-name --remote-header-name $download_url -w "%{filename_effective}"`
+  popd > /dev/null
+
+  echo "${WORKDIR}/$stemcell_filename"
 }
 
 upload_stemcell () {
-  stemcell_file=$1
+  stemcell_file=`realpath $1`
 
   login_ops_manager > /dev/null
   curl -qsLf --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/stemcells" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
     -H "Accept: application/json" -F "stemcell[file]=@${stemcell_file}"
-
 }
 
 upload_tile () {
@@ -147,6 +146,6 @@ stage_product () {
     version=`echo $available_product | jq --raw-output ".product_version"`
   fi
 
-  curl -qsv --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
-    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$product_name\", \"product_version\": \"${version}\"}"
+  curl -qsLf --insecure -X POST "${OPS_MANAGER_API_ENDPOINT}/staged/products" -H "Authorization: Bearer ${UAA_ACCESS_TOKEN}" \
+    -H "Accept: application/json" -H "Content-Type: application/json" -d "{\"name\": \"$product\", \"product_version\": \"${version}\"}"
 }

@@ -8,6 +8,7 @@ GCPDIR="${BASEDIR}/../pcf-on-gcp"
 . "${GCPDIR}/lib/login_ops_manager.sh"
 . "${BASEDIR}/lib/ops_manager.sh"
 . "${BASEDIR}/lib/elastic_runtime.sh"
+. "${BASEDIR}/lib/rabbitmq.sh"
 . "${GCPDIR}/lib/eula.sh"
 . "${BASEDIR}/lib/products.sh"
 . "${GCPDIR}/lib/guid.sh"
@@ -128,6 +129,7 @@ usage () {
 }
 
 products () {
+
   if [ "$INSTALL_PCF" -eq 1 ] ; then
     cloud_foundry
   fi
@@ -184,6 +186,18 @@ stemcell () {
   upload_stemcell $stemcell_file
 }
 
+services_stemcell () {
+  if [ -z "${SERVICES_STEMCELL_UPLOADED}" ] ; then
+    login_ops_manager
+    echo "Downloading stemcell ${SERVICES_STEMCELL_VERSION} for services..."
+    accept_eula "stemcells" "${SERVICES_STEMCELL_VERSION}" "yes"
+    stemcell_file=`download_stemcell ${SERVICES_STEMCELL_VERSION}`
+    echo "Uploading stemcell ($stemcell_file) to Operations Manager..."
+    upload_stemcell $stemcell_file
+    SERVICE_STEMCELL_UPLOADED="yes"
+  fi
+}
+
 cloud_foundry () {
   add_to_install "Cloud Foundry Elastic Runtime" "${PCF_SLUG}" "${PCF_VERSION}" "${PCF_OPSMAN_SLUG}"
   store_var PCF_GUID "${guid}"
@@ -216,33 +230,40 @@ cloud_foundry () {
 }
 
 mysql () {
-  add_to_install "Rabbit MQ Broker" "${MYSQL_SLUG}" "${MYSQL_VERSION}"
+  add_to_install "MYSQL Broker" "${MYSQL_SLUG}" "${MYSQL_VERSION}"
   store_var MYSQL_GUID "${GUID}"
-  set_networks_azs "${MYSQL_SLUG}" "${TILES_NETWORK_NAME}"
+  set_networks_azs "${MYSQL_SLUG}"
+  services_stemcell
 }
 
 rabbit () {
-  add_to_install "Rabbit MQ Broker" "${RABBIT_SLUG}" "${REDIS_VERSION}"
-  store_var REDIS_GUID "${GUID}"
-  set_networks_azs "${RABIT_SLUG}" "${SERVICES_NETWORK_NAME}"
+  add_to_install "Rabbit MQ Broker" "${RABBIT_SLUG}" "${RABBIT_VERSION}"
+  store_var RABBIT_GUID "${GUID}"
+  set_networks_azs "${RABBIT_SLUG}"
+  set_rabbit_config
+  set_rabbit_single_node_plan
+  services_stemcell
 }
 
 redis () {
   add_to_install "Redis Service Broker" "${REDIS_SLUG}" "${REDIS_VERSION}"
   store_var REDIS_GUID "${GUID}"
-  set_networks_azs "${REDIS_SLUG}" "${SERVICES_NETWORK_NAME}"
+  set_networks_azs "${REDIS_SLUG}"
+  services_stemcell
 }
 
 cloud_cache () {
   add_to_install "Spring Cloud Services" "${PCC_SLUG}" "${PCC_VERSION}"
   store_var PCC_GUID "${GUID}"
-  set_networks_azs "${PCC_SLUG}" "${TILES_NETWORK_NAME}"
+  set_networks_azs "${PCC_SLUG}"
+  services_stemcell
 }
 
 spring_cloud_services () {
   add_to_install "Spring Cloud Services" "${SCS_SLUG}" "${SCS_VERSION}"
   store_var SCS_GUID "${GUID}"
-  set_networks_azs "${SCS_SLUG}" "${TILES_NETWORK_NAME}"
+  set_networks_azs "${SCS_SLUG}"
+  services_stemcell
 }
 
 service_broker () {
@@ -257,7 +278,7 @@ service_broker () {
   SERVICE_ACCOUNT_CREDENTIALS=`cat "${KEYDIR}/${PROJECT}-service-broker-${SUBDOMAIN_TOKEN}.json" | jq -c '.' | sed 's/\"/\\\"/g'`
   BROKER_DB_HOST=`cat "${WORKDIR}/gcp-service-broker-db.ip"`
 
-  set_networks_azs "gcp-service-broker" "${TILES_NETWORK_NAME}"
+  set_networks_azs "gcp-service-broker"
 
   PROPERTIES_JSON=`export SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY CLIENT_CERT SERVER_CERT ; envsubst < api-calls/gcp-service-broker-properties.json ; unset SERVICE_ACCOUNT_CREDENTIALS BROKER_DB_HOST BROKER_DB_USER BROKER_DB_USER_PASSWORD CLIENT_KEY CLIENT_CERT SERVER_CERT`
   set_properties "gcp-service-broker" "${PROPERTIES_JSON}"
@@ -282,7 +303,7 @@ windows_stemcell () {
 push_notifications () {
   add_to_install "Push Notifications" "${PUSH_SLUG}" "${PUSH_VERSION}"
   store_var PUSH_GUID "${GUID}"
-  set_networks_azs "${PUSH_SLUG}" "${TILES_NETWORK_NAME}"
+  set_networks_azs "${PUSH_SLUG}"
 }
 
 isolation_segments () {
@@ -294,7 +315,7 @@ isolation_segments () {
 scheduler () {
   add_to_install "Isolation Segments" "${SCHEDULER_SLUG}" "${SCHEDULER_VERSION}"
   store_var SCHEDULER_GUID "${GUID}"
-  set_networks_azs "${SCHEDULER_SLUG}" "${TILES_NETWORK_NAME}"
+  set_networks_azs "${SCHEDULER_SLUG}"
 }
 
 
@@ -340,8 +361,8 @@ add_to_install() {
     echo "Uploading ${product_name}..."
     upload_tile $tile_file
   fi
-  echo "Staging ${product_name}..."
-  stage_product "${opsman_slug}"
+  echo "Staging ${product_name} (${opsman_slug})..."
+  stage_product "${opsman_slug}" "${version}"
   GUID=`product_guid "${opsman_slug}"`
 }
 
