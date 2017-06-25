@@ -28,7 +28,7 @@ fi
 . "${BASEDIR}/lib/setup.sh"
 . "${BASEDIR}/lib/elastic_runtime.sh"
 . "${BASEDIR}/lib/ops_manager.sh"
-. "${BASEDIR}/lib/ops_manager.sh"
+. "${BASEDIR}/lib/director.sh"
 
 prepare_env
 overrides
@@ -61,7 +61,7 @@ export OPS_MANAGER_HOST
 export OPS_MANAGER_FQDN
 export OPS_MANAGER_API_ENDPOINT
 export DIRECTOR_NETWORK_NAME
-export SERVICE_NETWORK_NAME
+export SERVICES_NETWORK_NAME
 export SERVICE_ACCOUNT
 
 export BUILDPACKS_STORAGE_BUCKET

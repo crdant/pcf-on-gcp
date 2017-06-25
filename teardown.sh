@@ -138,7 +138,7 @@ security () {
   rm ${KEYDIR}/vcap-key ${KEYDIR}/vcap-key.pub
 
   # delete the service account
-  gcloud iam service-accounts delete bosh-opsman-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
+  gcloud iam service-accounts delete pcf-deployment-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 
   # get rid of the saved passwords
   passwords
@@ -165,7 +165,7 @@ network () {
   # remove the a network
   gcloud compute --project "${PROJECT}" networks subnets delete "pcf-services-${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
   gcloud compute --project "${PROJECT}" networks subnets delete "pcf-tiles-${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
-  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-deployment-${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
+  gcloud compute --project "${PROJECT}" networks subnets delete "pcf-deployment--${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
   gcloud compute --project "${PROJECT}" networks subnets delete "pcf-infra-${REGION_1}-${SUBDOMAIN_TOKEN}" --region ${REGION_1} --quiet
 
   gcloud compute --project "${PROJECT}" networks delete "pcf-${SUBDOMAIN_TOKEN}" --quiet

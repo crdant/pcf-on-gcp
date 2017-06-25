@@ -9,6 +9,7 @@ GCPDIR="${BASEDIR}/../pcf-on-gcp"
 . "${BASEDIR}/lib/ops_manager.sh"
 . "${BASEDIR}/lib/elastic_runtime.sh"
 . "${BASEDIR}/lib/rabbitmq.sh"
+. "${BASEDIR}/lib/redis.sh"
 . "${GCPDIR}/lib/eula.sh"
 . "${BASEDIR}/lib/products.sh"
 . "${GCPDIR}/lib/guid.sh"
@@ -249,6 +250,7 @@ redis () {
   add_to_install "Redis Service Broker" "${REDIS_SLUG}" "${REDIS_VERSION}"
   store_var REDIS_GUID "${GUID}"
   set_networks_azs "${REDIS_SLUG}"
+  set_redis_plans
   services_stemcell
 }
 

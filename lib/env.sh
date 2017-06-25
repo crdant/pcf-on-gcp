@@ -13,7 +13,7 @@ prepare_env () {
   AVAILABILITY_ZONE_1="${REGION_1}-b"
   AVAILABILITY_ZONE_2="${REGION_1}-c"
   AVAILABILITY_ZONE_3="${REGION_1}-d"
-  SERVICE_ACCOUNT="bosh-opsman-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com"
+  SERVICE_ACCOUNT="pcf-deployment-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com"
 
   DNS_ZONE="${SUBDOMAIN}"
   DNS_TTL=60
@@ -75,7 +75,7 @@ prepare_env () {
 }
 
 set_versions () {
-  OPS_MANAGER_VERSION="1.11.0"
+  OPS_MANAGER_VERSION="1.11.1"
   OPS_MANAGER_VERSION_TOKEN=`echo ${OPS_MANAGER_VERSION} | tr . -`
   PCF_VERSION="1.11.0"
   STEMCELL_VERSION="3421.3"
@@ -91,7 +91,7 @@ set_versions () {
   ISOLATION_VERSION="1.11.0"
   IPSEC_VERSION="1.6.3"
   PUSH_VERSION="1.9.0"
-  SSO_VERSION="1.4.1"
+  SSO_VERSION="1.4.2"
   SCHEDULER_VERSION="1.0.2-beta"
   STACKDRIVER_VERSION="1.0.3"
   STACKDRIVER_VERSION_TOKEN=`echo ${STACKDRIVER_VERSION} | tr . - | tr ' ' - | tr -d ')' | tr -d '(' | tr '[:upper:]' '[:lower:]'`

@@ -35,7 +35,7 @@ network () {
   # create an infrastructure subnet
   gcloud compute --project "${PROJECT}" networks subnets create "pcf-infra-${REGION_1}-${SUBDOMAIN_TOKEN}" --network "pcf-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --range ${INFRASTRUCTURE_CIDR} --no-user-output-enabled
   # create a subnet for ERT
-  gcloud compute --project "${PROJECT}" networks subnets create "pcf-deployment-${REGION_1}-${SUBDOMAIN_TOKEN}" --network "pcf-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --range ${DEPLOYMENT_CIDR} --no-user-output-enabled
+  gcloud compute --project "${PROJECT}" networks subnets create "pcf-deployment--${REGION_1}-${SUBDOMAIN_TOKEN}" --network "pcf-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --range ${DEPLOYMENT_CIDR} --no-user-output-enabled
   # create a non-ODB services subnet
   gcloud compute --project "${PROJECT}" networks subnets create "pcf-tiles-${REGION_1}-${SUBDOMAIN_TOKEN}" --network "pcf-${SUBDOMAIN_TOKEN}" --region "${REGION_1}" --range ${TILES_CIDR} --no-user-output-enabled
   # create a ODB services subnet
@@ -55,7 +55,7 @@ network () {
   gcloud compute --project "${PROJECT}" firewall-rules create "pcf-access-cloud-controller-${SUBDOMAIN_TOKEN}" --allow "tcp:80,tcp:443" --description "Allow web access from internal sources to the cloud controller" --network "pcf-${SUBDOMAIN_TOKEN}" --source-ranges ${CIDR} --target-tags "cloud-controller" --no-user-output-enabled
 
   echo "Google Network for for infrastructure BOSH Director network: pcf-infra-${SUBDOMAIN_TOKEN}/pcf-infrastructure-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
-  echo "Google Network for for Elastic Runtime BOSH Director network: pcf-${SUBDOMAIN_TOKEN}/pcf-deployment-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
+  echo "Google Network for for Elastic Runtime BOSH Director network: pcf-${SUBDOMAIN_TOKEN}/pcf-deployment--${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
   echo "Google Network for for tiles BOSH Director network: pcf-${SUBDOMAIN_TOKEN}/pcf-tiles-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
   echo "Google Network for for ODB services BOSH Director network: pcf-${SUBDOMAIN_TOKEN}/pcf-services-${REGION_1}-${SUBDOMAIN_TOKEN}/${REGION_1}"
 
@@ -65,14 +65,24 @@ security () {
   echo "Creating services accounts and SSH keys..."
 
   # create a service account and give it a key (parameterize later), not sure why it doesn't have a project specified but that seems right
-  gcloud iam service-accounts --project "${PROJECT}" create bosh-opsman-${SUBDOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
-  gcloud iam service-accounts --project "${PROJECT}" keys create "${KEYDIR}/${PROJECT}-bosh-opsman-${SUBDOMAIN_TOKEN}.json" --iam-account "${SERVICE_ACCOUNT}" --no-user-output-enabled
+  gcloud iam service-accounts --project "${PROJECT}" create pcf-deployment-${SUBDOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
+  gcloud iam service-accounts --project "${PROJECT}" keys create "${KEYDIR}/${PROJECT}-pcf-deployment-${SUBDOMAIN_TOKEN}.json" --iam-account "${SERVICE_ACCOUNT}" --no-user-output-enabled
 
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/editor" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/iam.serviceAccountActor" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.instanceAdmin" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.networkAdmin" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.storageAdmin" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/storage.admin" --no-user-output-enabled
+
+  while true; do
+      read -p "Service account all good? " yn
+      case $yn in
+          [Yy]* ) break;;
+          [Nn]* ) exit;;
+          * ) echo "Please answer yes or no.";;
+      esac
+  done
 
   # setup VCAP SSH for all boxen
   ssh-keygen -P "" -t rsa -f ${KEYDIR}/vcap-key -b 4096 -C vcap@local > /dev/null
@@ -334,6 +344,7 @@ stackdriver () {
 
   # prepare for the stackdriver nozzle
   echo "Setting up service account stackdriver-nozzle-${SUBDOMAIN_TOKEN}"
+
   gcloud iam --project "${PROJECT}" service-accounts create "nozzle-${SUBDOMAIN_TOKEN}" --display-name "PCF Stackdriver Nozzle" --no-user-output-enabled
   gcloud iam --project "${PROJECT}" service-accounts keys create "${KEYDIR}/${PROJECT}-nozzle-${SUBDOMAIN_TOKEN}.json" --iam-account "nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --no-user-output-enabled
   gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.logWriter" --no-user-output-enabled
