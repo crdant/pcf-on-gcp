@@ -5,6 +5,7 @@
 # created by OpsManager (or otherwise) that depend on these prerequisites still exist
 
 BASEDIR=`dirname $0`
+. "${BASEDIR}/lib/util.sh"
 . "${BASEDIR}/lib/env.sh"
 prepare_env
 

@@ -13,7 +13,13 @@ prepare_env () {
   AVAILABILITY_ZONE_1="${REGION_1}-b"
   AVAILABILITY_ZONE_2="${REGION_1}-c"
   AVAILABILITY_ZONE_3="${REGION_1}-d"
-  SERVICE_ACCOUNT="pcf-deployment-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com"
+
+  SERVICE_ACCOUNT_NAME=`name_service_account pcf-deployment`
+  SERVICE_ACCOUNT="${SERVICE_ACCOUNT_NAME}@${PROJECT}.iam.gserviceaccount.com"
+  BROKER_SERVICE_ACCOUNT_NAME=`name_service_account service-broker`
+  BROKER_SERVICE_ACCOUNT="${BROKER_SERVICE_ACCOUNT_NAME}@${PROJECT}.iam.gserviceaccount.com"
+  NOZZLE_SERVICE_ACCOUNT_NAME=`name_service_account nozzle`
+  NOZZLE_SERVICE_ACCOUNT="${NOZZLE_SERVICE_ACCOUNT_NAME}@${PROJECT}.iam.gserviceaccount.com"
 
   DNS_ZONE="${SUBDOMAIN}"
   DNS_TTL=60

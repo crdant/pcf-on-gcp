@@ -2,6 +2,7 @@
 # prepare to install PCF on GCP
 
 BASEDIR=`dirname $0`
+. "${BASEDIR}/lib/util.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"
@@ -65,7 +66,7 @@ security () {
   echo "Creating services accounts and SSH keys..."
 
   # create a service account and give it a key (parameterize later), not sure why it doesn't have a project specified but that seems right
-  gcloud iam service-accounts --project "${PROJECT}" create pcf-deployment-${SUBDOMAIN_TOKEN} --display-name bosh --no-user-output-enabled
+  gcloud iam service-accounts --project "${PROJECT}" create "${SERVICE_ACCOUNT_NAME}" --display-name bosh --no-user-output-enabled
   gcloud iam service-accounts --project "${PROJECT}" keys create "${KEYDIR}/${PROJECT}-pcf-deployment-${SUBDOMAIN_TOKEN}.json" --iam-account "${SERVICE_ACCOUNT}" --no-user-output-enabled
 
   gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/editor" --no-user-output-enabled
@@ -303,10 +304,10 @@ service_broker () {
 
   # prepare for the google service broker
   echo "Setting up service account service-broker-${SUBDOMAIN_TOKEN}"
-  gcloud iam service-accounts create "service-broker-${SUBDOMAIN_TOKEN}" --display-name "Google Cloud Platform Service Broker" --no-user-output-enabled
-  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-service-broker-${SUBDOMAIN_TOKEN}.json" --iam-account service-broker-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:service-broker-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/owner" --no-user-output-enabled
-  echo "Service account service-broker-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
+  gcloud iam service-accounts create "${BROKER_SERVICE_ACCOUNT_NAME}" --display-name "Google Cloud Platform Service Broker" --no-user-output-enabled
+  gcloud iam service-accounts keys create "${KEYDIR}/${PROJECT}-service-broker-${SUBDOMAIN_TOKEN}.json" --iam-account "${BROKER_SERVICE_ACCOUNT}" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member "serviceAccount:${BROKER_SERVICE_ACCOUNT}" --role "roles/owner" --no-user-output-enabled
+  echo "Service account ${BROKER_SERVICE_ACCOUNT} created."
 
   GCP_BROKER_DATABASE_NAME="gcp-service-broker-${GCP_VERSION_TOKEN}-${SUBDOMAIN_TOKEN}-"`random_phrase`
   # TODO: store this in a file that won't go away if we reboot
@@ -345,10 +346,10 @@ stackdriver () {
   # prepare for the stackdriver nozzle
   echo "Setting up service account stackdriver-nozzle-${SUBDOMAIN_TOKEN}"
 
-  gcloud iam --project "${PROJECT}" service-accounts create "nozzle-${SUBDOMAIN_TOKEN}" --display-name "PCF Stackdriver Nozzle" --no-user-output-enabled
-  gcloud iam --project "${PROJECT}" service-accounts keys create "${KEYDIR}/${PROJECT}-nozzle-${SUBDOMAIN_TOKEN}.json" --iam-account "nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.logWriter" --no-user-output-enabled
-  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com" --role "roles/logging.configWriter" --no-user-output-enabled
+  gcloud iam --project "${PROJECT}" service-accounts create "${NOZZLE_SERVICE_ACCOUNT}" --display-name "PCF Stackdriver Nozzle" --no-user-output-enabled
+  gcloud iam --project "${PROJECT}" service-accounts keys create "${KEYDIR}/${PROJECT}-nozzle-${SUBDOMAIN_TOKEN}.json" --iam-account "${NOZZLE_SERVICE_ACCOUNT}" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:${NOZZLE_SERVICE_ACCOUNT}" --role "roles/logging.logWriter" --no-user-output-enabled
+  gcloud projects add-iam-policy-binding ${PROJECT} --member="serviceAccount:${NOZZLE_SERVICE_ACCOUNT}" --role "roles/logging.configWriter" --no-user-output-enabled
   echo "Service account nozzle-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com created."
 }
 
