@@ -2,6 +2,7 @@
 # upgrade an existing Ops Manager and PCF to the version(s) specified in $OPS_MANAGER_VERSION and $PCF_VERSION
 
 BASEDIR=`dirname $0`
+. "${BASEDIR}/lib/util.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"

@@ -2,6 +2,7 @@
 # prepare to install PCF on GCP
 
 BASEDIR=`dirname $0`
+. "${BASEDIR}/lib/util.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"

@@ -2,6 +2,7 @@
 # start instances running at the IaaS level
 
 BASEDIR=`dirname $0`
+. "${BASEDIR}/lib/util.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"
@@ -20,7 +21,7 @@ vms () {
 ops_manager () {
   # pause Ops Manager
   for instance in `gcloud compute --project ${PROJECT} instances list --filter='tags.items:pcf-opsmanager' --uri`; do
-    gcloud compute --project ${PROJECT} instances start "${instance}" --quiet 
+    gcloud compute --project ${PROJECT} instances start "${instance}" --quiet
   done
   sleep 120
   unlock_ops_manager

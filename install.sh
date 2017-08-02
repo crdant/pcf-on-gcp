@@ -2,7 +2,7 @@
 # install PCF and related products
 
 BASEDIR=`dirname $0`
-GCPDIR="${BASEDIR}/../pcf-on-gcp"
+. "${BASEDIR}/lib/util.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/personal.sh"
 . "${GCPDIR}/lib/login_ops_manager.sh"

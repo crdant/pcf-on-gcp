@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # get the status of all VMs running your cloud foundry instance
 BASEDIR=`dirname $0`
+. "${BASEDIR}/lib/util.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/lib/customization_hooks.sh"
 . "${BASEDIR}/personal.sh"

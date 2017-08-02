@@ -8,6 +8,7 @@ else
   BASEDIR=`dirname $0`
 fi
 
+. "${BASEDIR}/lib/util.sh"
 . "${BASEDIR}/lib/env.sh"
 . "${BASEDIR}/personal.sh"
 . "${BASEDIR}/lib/credentials.sh"
