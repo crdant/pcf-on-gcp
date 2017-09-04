@@ -138,6 +138,18 @@ security () {
   gcloud compute --project=${PROJECT} project-info remove-metadata --keys sshKeys --quiet
   rm ${KEYDIR}/vcap-key ${KEYDIR}/vcap-key.pub
 
+  # remove permissions os the key will delete
+  gcloud projects remove-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/editor" --no-user-output-enabled
+  gcloud projects remove-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/iam.serviceAccountActor" --no-user-output-enabled
+  gcloud projects remove-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.instanceAdmin" --no-user-output-enabled
+  gcloud projects remove-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.networkAdmin" --no-user-output-enabled
+  gcloud projects remove-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/compute.storageAdmin" --no-user-output-enabled
+  gcloud projects remove-iam-policy-binding ${PROJECT} --member "serviceAccount:${SERVICE_ACCOUNT}" --role "roles/storage.admin" --no-user-output-enabled
+
+  # delete the key
+  KEYID=`jq --raw-output '.private_key_id' "${key_file}" `
+  gcloud iam service-accounts --project "${PROJECT}" keys delete "${KEYID}" --iam-account "${SERVICE_ACCOUNT}" --no-user-output-enabled
+
   # delete the service account
   gcloud iam service-accounts delete pcf-deployment-${SUBDOMAIN_TOKEN}@${PROJECT}.iam.gserviceaccount.com --quiet
 
@@ -177,6 +189,44 @@ START_SECONDS=`date +%s`
 prepare_env
 echo "Started tearing down Cloud Foundry installation in Google Cloud Platform project ${PROJECT} at ${START_TIMESTAMP}..."
 setup
+
+if [ $# -gt 0 ]; then
+  while [ $# -gt 0 ]; do
+    case $1 in
+      network)
+        network
+        ;;
+      security)
+        security
+        ;;
+      vms)
+        vms
+        ;;
+      load_balanacers | lbs | balancers)
+        load_balancers
+        ;;
+      dns)
+        dns
+        ;;
+      blobstore)
+        blobstore
+        ;;
+      products)
+        products
+        ;;
+      ops_manager | manager | om)
+        ops_manager
+        ;;
+      * )
+        echo "Unrecognized option: $1" 1>&2
+        exit 1
+        ;;
+    esac
+    shift
+    exit
+  done
+fi
+
 vms
 products
 blobstore
@@ -185,6 +235,7 @@ dns
 load_balancers
 security
 network
+
 END_TIMESTAMP=`date`
 END_SECONDS=`date +%s`
 ELAPSED_TIME=`echo $((END_SECONDS-START_SECONDS)) | awk '{print int($1/60)":"int($1%60)}'`
