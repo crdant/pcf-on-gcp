@@ -173,6 +173,8 @@ load_balancers () {
 }
 
 dns () {
+
+  # TODO: Add a check for whether the zone already exists
   echo "Configuring DNS entries for all load balancers"
   gcloud dns managed-zones create ${DNS_ZONE} --dns-name "${SUBDOMAIN}." --description "Zone for ${SUBDOMAIN}" --no-user-output-enabled
 
@@ -225,6 +227,8 @@ blobstore () {
 }
 
 ops_manager () {
+  set -x
+  set -e
   echo "Installing Operations Manager..."
   OPS_MANAGER_RELEASES_URL="https://network.pivotal.io/api/v2/products/ops-manager/releases"
   OPS_MANAGER_YML="${WORKDIR}/ops-manager-on-gcp.yml"
@@ -285,6 +289,7 @@ ops_manager () {
   echo "Setting up subnets for services network..."
   services_network
   echo "BOSH Director created"
+  set +x
 }
 
 cloud_foundry () {
@@ -360,6 +365,50 @@ prepare_env
 overrides
 setup
 apis
+
+if [ $# -gt 0 ]; then
+  while [ $# -gt 0 ]; do
+    case $1 in
+      network)
+        network
+        ;;
+      security)
+        security
+        ;;
+      certificates | ssl_certs)
+        ssl_certs
+        ;;
+      load_balanacers | lbs | balancers)
+        load_balancers
+        ;;
+      dns)
+        dns
+        ;;
+      blobstore)
+        blobstore
+        ;;
+      ops_manager | manager | om)
+        ops_manager
+        ;;
+      cloud_foundry | cf | pcf | cloudfoundry)
+        cloud_foundry
+        ;;
+      service_broker | broker)
+        service_broker
+        ;;
+      stackdriver)
+        stackdriver
+        ;;
+      * )
+        echo "Unrecognized option: $1" 1>&2
+        exit 1
+        ;;
+    esac
+    shift
+    exit
+  done
+fi
+
 network
 security
 ssl_certs
